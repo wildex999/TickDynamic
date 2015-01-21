@@ -1,9 +1,12 @@
 package patcher;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.File;
 import java.io.StringWriter;
@@ -20,6 +23,7 @@ import org.objectweb.asm.util.TraceClassVisitor;
 import org.objectweb.asm.ClassReader;
 
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.ZipFile;
@@ -27,7 +31,32 @@ import java.util.zip.ZipEntry;
 import java.util.LinkedList;
 import java.util.Scanner;
 
+
+/*
+ * PATCH FILE FORMAT
+ * A patch file contains multiple patches.
+ * 
+ * int patchFileVersion; //Version, allowing for future changes with warning
+ * int patchCount; //Number of patches in this file
+ * 
+ * for(each patch) {
+ *     int start1;
+ *     int start2;
+ *     int length1;
+ *     int length2;
+ *     int diffCount; //Number of diff operations in patch
+ *     
+ *     for(each diff) {
+ *         byte diffOperation; //0 = DELETE, 1 = INSERT, 2 = EQUAL
+ *         UTF8 text; //Prefixed with the length(Short, 2 bytes)
+ *     }
+ * }
+ * 
+ */
+
 public class Patcher {
+	public static final int patcherVersion = 1;
+	
 	private String baseJarPath;
 	private String sourcePath;
 	private String patchOutputPath;
@@ -45,14 +74,14 @@ public class Patcher {
 		patchOutputPath = args[2];
 		System.out.println("--Patcher--");
 		System.out.println("Base Jar: " + baseJarPath);
-		System.out.println("Source Path: " + sourcePath);
+		System.out.println("Source Jar: " + sourcePath);
 		System.out.println("Output Path: " + patchOutputPath);
 		
 		//Go through all source files and see if the same file exists within the base jar.
 		//If it does, generate a patch.
-		File sourceDir = new File(sourcePath);
-		if(!sourceDir.exists())
-			throw new RuntimeException("Source path does not exist: " + sourcePath);
+		File sourceFile = new File(sourcePath);
+		if(!sourceFile.exists())
+			throw new RuntimeException("Source jar does not exist: " + sourcePath);
 		
 		try
 		{
@@ -61,15 +90,19 @@ public class Patcher {
 			FileUtils.deleteDirectory(delDir);
 			
 			ZipFile baseJar = new ZipFile(baseJarPath);
-			Collection files = FileUtils.listFiles(sourceDir, new SuffixFileFilter(".class"), DirectoryFileFilter.DIRECTORY);
-			for(Iterator<File> i = files.iterator(); i.hasNext(); ) {
-				File sourceFile = i.next();
-				String internalPath = sourceFile.getAbsolutePath().substring(sourcePath.length());
-				ZipEntry baseEntry = baseJar.getEntry(internalPath.replace(File.separatorChar, '/'));
+			ZipFile sourceJar = new ZipFile(sourceFile);
+			//Collection files = FileUtils.listFiles(sourceFile, new SuffixFileFilter(".class"), DirectoryFileFilter.DIRECTORY);
+			Enumeration<? extends ZipEntry> entries = sourceJar.entries();
+			while(entries.hasMoreElements()) {
+				ZipEntry sourceEntry = entries.nextElement();
+				if(!sourceEntry.getName().endsWith(".class"))
+					continue;
+				
+				ZipEntry baseEntry = baseJar.getEntry(sourceEntry.getName());
 				if(baseEntry == null)
 					continue;
 				
-				System.out.println("Creating Patch: " + internalPath);
+				System.out.println("Creating Patch: " + sourceEntry.getName());
 				
 				//Read in byte data and convert into strings for diffing, using a 1-to-1 encoding 
 				//since the patching method uses text instead of binary.
@@ -79,7 +112,7 @@ public class Patcher {
 				String baseData;
 				
 				//Read source class
-				FileInputStream input = new FileInputStream(sourceFile);
+				InputStream input = sourceJar.getInputStream(sourceEntry);
 				ClassNode cn = new ClassNode();
 				stringWriter = new StringWriter();
 				TraceClassVisitor printer = new TraceClassVisitor(new PrintWriter(stringWriter));
@@ -98,36 +131,45 @@ public class Patcher {
 				
 				baseData = stringWriter.toString();
 				
+				
+				File patchFileOutTest = new File(patchOutputPath + sourceEntry.getName() + ".patch.base");
+				if(!patchFileOutTest.getParentFile().exists() && !patchFileOutTest.getParentFile().mkdirs())
+					throw new RuntimeException("Failed to create new file for patch: " + patchFileOutTest.getAbsolutePath());
+				FileOutputStream output1 = new FileOutputStream(patchFileOutTest);
+				DataOutputStream dos1 = new DataOutputStream(output1);
+				dos1.write(baseData.getBytes());
+				dos1.close();
+				
 				DiffPatch diffPatch = new DiffPatch();
-				LinkedList<DiffPatch.Patch> patch = diffPatch.patch_make(baseData, sourceData);
+				LinkedList<DiffPatch.Patch> patchSet = diffPatch.patch_make(baseData, sourceData);
 				
-				stripLineNumberDiffs(baseData, patch, true);
+				//Strip any line numbers to reduce patching surface area and retain correct debug lines(Mostly)
+				stripLineNumberDiffs(baseData, patchSet, true);
 				
-				/*Object[] patched = diffPatch.patch_apply(patch, baseData);
-				String patchedBase = (String)patched[0];
-				boolean[] arr = (boolean[])patched[1];
 				
-				for(int b = 0; b < arr.length; b++) {
-					System.out.println("Res: " + arr[b]);
+				if(patchSet.size() == 0)
+				{
+					System.out.println("Warning: Nothing to patch!");
+					continue;
 				}
 				
-				File out = new File("C:/Users/Wildex999/Downloads/development/forge-1.7.10-10.13.2.1230-src/output.log");
-				FileOutputStream output = new FileOutputStream(out);
-				DataOutputStream dos = new DataOutputStream(output);
-				//dos.write(patch.toString().getBytes());
-				dos.write(patchedBase.getBytes());
-				dos.close();*/
-				
-				if(patch.size() == 0)
-					continue;
+				patchFileOutTest = new File(patchOutputPath + sourceEntry.getName() + ".patch.source");
+				if(!patchFileOutTest.getParentFile().exists() && !patchFileOutTest.getParentFile().mkdirs())
+					throw new RuntimeException("Failed to create new file for patch: " + patchFileOutTest.getAbsolutePath());
+				output1 = new FileOutputStream(patchFileOutTest);
+				dos1 = new DataOutputStream(output1);
+				dos1.write(sourceData.getBytes());
+				dos1.close();
 				
 				//Write patch file
-				File patchFileOut = new File(patchOutputPath + internalPath + ".patch");
-				if(!patchFileOut.getParentFile().mkdirs())
+				File patchFileOut = new File(patchOutputPath + sourceEntry.getName() + ".patch");
+				if(!patchFileOut.getParentFile().exists() && !patchFileOut.getParentFile().mkdirs())
 					throw new RuntimeException("Failed to create new file for patch: " + patchFileOut.getAbsolutePath());
 				FileOutputStream output = new FileOutputStream(patchFileOut);
 				DataOutputStream dos = new DataOutputStream(output);
-				dos.write(patch.toString().getBytes());
+				//dos.write(patchSet.toString().getBytes());
+				writePatchSet(dos, patchSet);
+				//System.out.println("Wrote to: " + patchFileOut.getAbsolutePath());
 				dos.close();
 				
 			}
@@ -209,13 +251,120 @@ public class Patcher {
 		}
 		
 		if(debug)
-			System.out.println("Patch Parts: " + patchSet.size());
+			System.out.println("Patches: " + patchSet.size());
 		
 	}
 	
 	//Write the patchSet to a file that can be later read and parsed
-	public static void writePatchSet(File target, LinkedList<DiffPatch.Patch> patchSet) {
+	public static void writePatchSet(DataOutputStream output, LinkedList<DiffPatch.Patch> patchSet) throws IOException {
 		
+		output.writeInt(patcherVersion);
+		output.writeInt(patchSet.size());
+		
+		DiffPatch.Patch curPatch;
+		for(Iterator<DiffPatch.Patch> p = patchSet.iterator(); p.hasNext();) {
+			curPatch = p.next();
+			
+			output.writeInt(curPatch.start1);
+			output.writeInt(curPatch.start2);
+			output.writeInt(curPatch.length1);
+			output.writeInt(curPatch.length2);
+			
+			output.writeInt(curPatch.diffs.size());
+			
+			for(Iterator<DiffPatch.Diff> d = curPatch.diffs.iterator(); d.hasNext();) {
+				DiffPatch.Diff curDiff = d.next();
+				
+				switch(curDiff.operation)
+				{
+				case DELETE:
+					output.writeByte(0);
+					break;
+				case INSERT:
+					output.writeByte(1);
+					break;
+				case EQUAL:
+					output.writeByte(2);
+					break;
+				}
+				
+				output.writeUTF(curDiff.text);
+			}
+		}
+	}
+	
+	public static LinkedList<DiffPatch.Patch> readPatchSet(DataInputStream input) throws IOException {
+		int version = input.readInt();
+		if(version != patcherVersion)
+		{
+			System.err.println("Trying to read patch file written with different version Patcher. File version: " + version + " Patcher Version: " + patcherVersion);
+			return null;
+		}
+		
+		int patchCount = input.readInt();
+		LinkedList<DiffPatch.Patch> patchSet = new LinkedList<DiffPatch.Patch>();
+		
+		for(int p=0; p<patchCount; p++)
+		{
+			DiffPatch.Patch curPatch = new DiffPatch.Patch();
+			patchSet.add(curPatch);
+			
+			curPatch.start1 = input.readInt();
+			curPatch.start2 = input.readInt();
+			curPatch.length1 = input.readInt();
+			curPatch.length2 = input.readInt();
+			
+			int diffCount = input.readInt();
+			LinkedList<DiffPatch.Diff> diffSet = new LinkedList<DiffPatch.Diff>();
+			curPatch.diffs = diffSet;
+			
+			for(int d=0; d<diffCount; d++)
+			{
+				byte operation = input.readByte();
+				DiffPatch.Operation op = DiffPatch.Operation.EQUAL;
+				switch(operation)
+				{
+				case 0:
+					op = DiffPatch.Operation.DELETE;
+					break;
+				case 1:
+					op = DiffPatch.Operation.INSERT;
+					break;
+				case 2:
+					op = DiffPatch.Operation.EQUAL;
+					break;
+				}
+				
+				String text = input.readUTF();
+				DiffPatch.Diff curDiff = new DiffPatch.Diff(op, text);
+				diffSet.add(curDiff);
+			}
+		}
+		
+		return patchSet;
+	}
+	
+	//Apply the given patchSet to the given base, returns null on failure to patch
+	public static String applyPatchSet(String base, LinkedList<DiffPatch.Patch> patchSet, boolean debug) {
+		String patched;
+		
+		DiffPatch patcher = new DiffPatch();
+		Object[] output = patcher.patch_apply(patchSet, base);
+		patched = (String)output[0];
+		
+		boolean[] results = (boolean[]) output[1];
+		
+		for(int r = 0; r<results.length; r++)
+		{
+			if(results[r] == false)
+			{
+				if(debug)
+					System.err.println("Failed to patch base: " + base + "\nUsing patch: " + patchSet.get(r));
+				return null;
+			}
+		}
+		
+		return patched;
 	}
 	
 }

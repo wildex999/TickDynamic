@@ -17,6 +17,7 @@ import java.util.zip.ZipFile;
 
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.util.ASMifier;
 import org.objectweb.asm.util.TraceClassVisitor;
 import org.objectweb.asm.*;
 
@@ -68,29 +69,36 @@ public class ExampleMod extends DummyModContainer
 		}*/
 		// some example code
         System.out.println("DIRT BLOCK >> "+Blocks.dirt.getUnlocalizedName());
-        File file = new File("C:/Users/Wildex999/Downloads/development/forge-1.7.10-10.13.2.1230-src/BlockGrass.class");
-        File out = new File("C:/Users/Wildex999/Downloads/development/forge-1.7.10-10.13.2.1230-src/output.log");
+        File file = new File("C:/Users/Wildex999/Downloads/development/GITProjects/TickDynamic/BlockGrass.class");
+        File out = new File("C:/Users/Wildex999/Downloads/development/GITProjects/TickDynamic/output.log");
         try {
 			FileInputStream input = new FileInputStream(file);
 			ClassNode cn = new ClassNode();
-			TraceClassVisitor printer = new TraceClassVisitor(new PrintWriter(out));
+			/*String[] args = new String[] { "C:/Users/Wildex999/Downloads/development/GITProjects/TickDynamic/BlockGrass.class" };
+			try {
+				ASMifier.main(args);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+			/*TraceClassVisitor printer = new TraceClassVisitor(new PrintWriter(out));
 			ClassReader cr = new ClassReader(input);
-			cr.accept(printer, ClassReader.EXPAND_FRAMES);
+			cr.accept(printer, ClassReader.EXPAND_FRAMES);*/
 			
-			FileInputStream input2 = new FileInputStream(file);
+			/*FileInputStream input2 = new FileInputStream(file);
 			byte[] fileData = new byte[(int) file.length()];
 			DataInputStream dis = new DataInputStream(input2);
 			dis.readFully(fileData);
-			dis.close();
+			dis.close();*/
 			
 			/*String decoded = new String(fileData, "ISO-8859-1");
 			
 			String t1 = decoded.substring(0, decoded.length() - 50);
 			String t2 = decoded.substring(decoded.length() - 50);
 			
-			decoded = t1 + t2;
+			decoded = t1 + t2;*/
 			
-			File out2 = new File("C:/Users/Wildex999/Downloads/development/forge-1.7.10-10.13.2.1230-src/output2.log");
+			/*File out2 = new File("C:/Users/Wildex999/Downloads/development/GITProjects/TickDynamic/output2.log");
 			FileOutputStream output = new FileOutputStream(out2);
 			DataOutputStream dos = new DataOutputStream(output);
 			dos.write(decoded.getBytes("ISO-8859-1"));

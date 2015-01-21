@@ -73,8 +73,7 @@ public class BlockGrass extends Block implements IGrowable
 
     public Item getItemDropped(int p_149650_1_, Random p_149650_2_, int p_149650_3_)
     {
-        //return Blocks.dirt.getItemDropped(0, p_149650_2_, p_149650_3_);
-    	return Blocks.glowstone.getItemDropped(0, p_149650_2_, p_149650_3_);
+        return Blocks.glowstone.getItemDropped(0, p_149650_2_, p_149650_3_);
     }
 
     public boolean func_149851_a(World p_149851_1_, int p_149851_2_, int p_149851_3_, int p_149851_4_, boolean p_149851_5_)

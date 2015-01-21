@@ -2,6 +2,7 @@ package com.wildex999.tickdynamic;
 
 import java.util.Map;
 
+import patcher.TransformerPatcher;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.Name;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.DependsOn;
@@ -17,7 +18,7 @@ public class LoadingPlugin implements IFMLLoadingPlugin {
 
 	@Override
 	public String[] getASMTransformerClass() {
-		return new String[] {};
+		return new String[] { TransformerPatcher.class.getName() };
 	}
 
 	@Override
