@@ -682,31 +682,31 @@ public class ASMClassParser {
 		
 		
 		//Instructions(No arguments)
-		if(Arrays.asList(insn).contains(value)) {
+		if(stringArrayContains(insn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null); //The ASM library already has the name to number binding, so we use it. How slow is this?
 			method.visitInsn(opcode);
 		}
 		
 		//Integer instructions
-		else if(Arrays.asList(intInsn).contains(value)) {
+		else if(stringArrayContains(intInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
 			method.visitIntInsn(opcode, Integer.parseInt(nextToken()));
 		}
 		
 		//Variable instructions
-		else if(Arrays.asList(varInsn).contains(value)) {
+		else if(stringArrayContains(varInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
 			method.visitVarInsn(opcode, Integer.parseInt(nextToken()));
 		}
 		
 		//Type Instructions
-		else if(Arrays.asList(typeInsn).contains(value)) {
+		else if(stringArrayContains(typeInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
 			method.visitTypeInsn(opcode, nextToken());
 		}
 		
 		//Field instructions
-		else if(Arrays.asList(fieldInsn).contains(value)) {
+		else if(stringArrayContains(fieldInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
 			String temp = nextToken();
 			int index = temp.indexOf(".");
@@ -719,7 +719,7 @@ public class ASMClassParser {
 		}
 		
 		//Method instructions
-		else if(Arrays.asList(methodInsn).contains(value)) {
+		else if(stringArrayContains(methodInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
 			String temp = nextToken();
 			int index = temp.indexOf(".");
@@ -732,7 +732,7 @@ public class ASMClassParser {
 			method.visitMethodInsn(opcode, owner, field, temp);
 		}
 		
-		else if(Arrays.asList(jumpInsn).contains(value)) {
+		else if(stringArrayContains(jumpInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
 			//Get the Label index
 			String labelIndex = nextToken();
@@ -969,6 +969,15 @@ public class ASMClassParser {
 			labelMap.put(labelIndex, label);
 		}
 		return label;
+	}
+	
+	protected boolean stringArrayContains(String[] arr, String value) {
+		for(int i=0; i<arr.length; i++) {
+			if(arr[i].equals(value))
+				return true;
+		}
+		
+		return false;
 	}
 	
 }

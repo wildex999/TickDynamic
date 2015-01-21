@@ -23,7 +23,7 @@ public class LoadingPlugin implements IFMLLoadingPlugin {
 
 	@Override
 	public String getModContainerClass() {
-		return ExampleMod.class.getName();
+		return TickDynamicMod.class.getName();
 	}
 
 	@Override
