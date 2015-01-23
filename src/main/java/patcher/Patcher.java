@@ -144,7 +144,7 @@ public class Patcher {
 				LinkedList<DiffPatch.Patch> patchSet = diffPatch.patch_make(baseData, sourceData);
 				
 				//Strip any line numbers to reduce patching surface area and retain correct debug lines(Mostly)
-				stripLineNumberDiffs(baseData, patchSet, true);
+				stripLineNumberDiffs(baseData, patchSet, false);
 				
 				
 				if(patchSet.size() == 0)
@@ -170,6 +170,15 @@ public class Patcher {
 				//dos.write(patchSet.toString().getBytes());
 				writePatchSet(dos, patchSet);
 				//System.out.println("Wrote to: " + patchFileOut.getAbsolutePath());
+				dos.close();
+				
+				//DEBUG: Raw patch
+				patchFileOut = new File(patchOutputPath + sourceEntry.getName() + ".patch.raw");
+				if(!patchFileOut.getParentFile().exists() && !patchFileOut.getParentFile().mkdirs())
+					throw new RuntimeException("Failed to create new file for patch: " + patchFileOut.getAbsolutePath());
+				output = new FileOutputStream(patchFileOut);
+				dos = new DataOutputStream(output);
+				dos.write(patchSet.toString().getBytes());
 				dos.close();
 				
 			}
@@ -250,8 +259,7 @@ public class Patcher {
 			curPos = baseData.indexOf("LINENUMBER", curPos+1);
 		}
 		
-		if(debug)
-			System.out.println("Patches: " + patchSet.size());
+		System.out.println("Patches: " + patchSet.size());
 		
 	}
 	

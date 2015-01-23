@@ -101,6 +101,7 @@ public class ASMClassParser {
 		parseClassHeader();
 		
 		String value;
+		String signature = null;
 		while(true)
 		{
 			value = nextToken();
@@ -114,6 +115,12 @@ public class ASMClassParser {
 			//Skip //
 			if(value.startsWith("//"))
 			{
+				//Check for pre-method generics signature
+				value = nextToken();
+				if(value.equals("signature"))
+					signature = nextToken();
+				else
+					currentToken--;
 				skipLine();
 				continue;
 			}
@@ -143,15 +150,19 @@ public class ASMClassParser {
 			//The first thing before either a Method or a Field is the access flags
 			int access = parseAccessFlags();
 			
-			//Check if it's a method
+			//Check if it's a method, field etc.
 			value = nextToken();
 			if(value == null)
 				continue; //Let it reach the == null throw
 			
-			if(value.contains("(")) //All methods have parentheses. while Fields do not
-				parseMethod(access);
+			if(value.equals("INNERCLASS"))
+				parseInnerClass(access);
+			else if(value.contains("(")) //All methods have parentheses. while Fields do not
+				parseMethod(access, signature);
 			else
-				parseField(access);
+				parseField(access, signature);
+			
+			signature = null;
 				
 		}
 		
@@ -248,7 +259,7 @@ public class ASMClassParser {
 			throw new Exception("Error: Did not find class identifier while parsing class header!");
 		
 		String className = nextToken();
-		String superClassName = "";
+		String superClassName = null;
 		List<String> impl = new ArrayList<String>();
 		String value;
 		
@@ -275,8 +286,15 @@ public class ASMClassParser {
 		}
 		
 		//Write header
-		if(superClassName.length() != 0)
+		/*if(superClassName != null)
+		{
 			access += Opcodes.ACC_SUPER;
+			System.out.println("super access: " + superClassName);
+		}
+		else*/
+		access += Opcodes.ACC_SUPER; //Seems this is always set after Java 1.1?
+		if(superClassName == null)
+			superClassName = "java/lang/Object";
 		
 		System.out.println("Writing class header:"
 				+ "\nAccess: " + Integer.toHexString(access).toUpperCase()
@@ -350,21 +368,35 @@ public class ASMClassParser {
 		}
 	}
 	
+	//Parse a inner class declaration
+	protected void parseInnerClass(int access) throws Exception {
+		String name = nextToken();
+		String outerName = nextToken();
+		String innerName = nextToken();
+		
+		if(outerName.equals("null"))
+			outerName = null;
+		if(innerName.equals("null"))
+			innerName = null;
+		
+		cl.visitInnerClass(name, outerName, innerName, access);
+	}
+	
 	//Parse a Field. Expects the currentToken to be the first
-	protected void parseField(int access) throws Exception {
+	protected void parseField(int access, String signature) throws Exception {
 		String value = getCurrentToken();
 		
 		String desc = value;
 		String name = nextToken();
-		String fieldValue = null;
+		Object fieldValue = null;
 		
 		//Check for preset value
 		if(nextToken().equals("="))
-			fieldValue = nextToken();
+			fieldValue = parseValue(nextToken()).value;
 		else
 			currentToken--; //Go back from our peek
 		
-		FieldVisitor field = cl.visitField(access, name, desc, null, fieldValue);
+		FieldVisitor field = cl.visitField(access, name, desc, signature, fieldValue);
 		System.out.println("Field: " + Integer.toHexString(access).toUpperCase() + " | " + name + " | " + desc + " | " + fieldValue);
 		
 		if(!nextToken().equals("\n"))
@@ -523,6 +555,14 @@ public class ASMClassParser {
 			return val;
 		}
 		
+		if(token.startsWith("L")) //Type
+		{
+			String objType = token.substring(0, token.indexOf(".")); //We don't want the '.class' at the end
+			val.type = ValueType.Type.TType;
+			val.value = org.objectweb.asm.Type.getType(objType);
+			return val;
+		}
+		
 		//Number value
 		int index = token.indexOf("F");
 		if(index != -1)
@@ -579,10 +619,11 @@ public class ASMClassParser {
 	}
 	
 	//Parse a method. Expect the currentToken to be the first
-	protected void parseMethod(int access) throws Exception {
+	protected void parseMethod(int access, String signature) throws Exception {
 		String value = getCurrentToken();
 		String methodName;
 		String desc;
+		String[] exceptionsArray = null;
 		
 		Map<String, Label> labels = new HashMap<String, Label>();
 		
@@ -593,10 +634,19 @@ public class ASMClassParser {
 		System.out.println("Parsing method: " + methodName + " Desc: " + desc);
 		
 		value = nextToken();
-		if(!value.equals("\n"))
-			throw new Exception("Error while parsing method: Expected \n on header, got: " + value);
 		
-		MethodVisitor method = cl.visitMethod(access, methodName, desc, null, null); //TODO: Generics and exceptions
+		if(value.equals("throws")) {
+			List<String> exceptions = new ArrayList<String>();
+			while(!value.equals("\n"))
+			{
+				value = nextToken();
+				exceptions.add(value);
+			}
+			exceptionsArray = exceptions.toArray(new String[exceptions.size()]);
+		} else if(!value.equals("\n"))
+			throw new Exception("Error while parsing method: Expected \\n on method header, got: " + value);
+		
+		MethodVisitor method = cl.visitMethod(access, methodName, desc, signature, exceptionsArray); //TODO: Generics and exceptions
 		
 		//Read any annotations for the method
 		while(true)
@@ -690,7 +740,11 @@ public class ASMClassParser {
 		//Integer instructions
 		else if(stringArrayContains(intInsn, value)) {
 			int opcode = Opcodes.class.getField(value).getInt(null);
-			method.visitIntInsn(opcode, Integer.parseInt(nextToken()));
+			
+			if(value.equals("NEWARRAY"))
+				method.visitIntInsn(opcode, Opcodes.class.getField(nextToken()).getInt(null));
+			else
+				method.visitIntInsn(opcode, Integer.parseInt(nextToken()));
 		}
 		
 		//Variable instructions

@@ -50,8 +50,8 @@ public class TransformerPatcher implements IClassTransformer {
 				TraceClassVisitor printer2 = new TraceClassVisitor(null, new ExtraTextifier(), new PrintWriter(out2));
 				ClassReader cr;
 				cr = new ClassReader(basicClass);
-				cr.accept(printer, 0);
-				cr.accept(printer2, 0);
+				cr.accept(printer, ClassReader.EXPAND_FRAMES);
+				cr.accept(printer2, ClassReader.EXPAND_FRAMES);
 				baseData = stringWriter.toString();
 				
 				//Patch
@@ -74,7 +74,7 @@ public class TransformerPatcher implements IClassTransformer {
 				cr = new ClassReader(basicClass);
 				File out = new File("C:/Users/Wildex999/Downloads/development/GITProjects/TickDynamic/output.log");
 				printer = new TraceClassVisitor(null, new ExtraTextifier(), new PrintWriter(out));
-				cr.accept(printer, 0);
+				cr.accept(printer, ClassReader.EXPAND_FRAMES);
 				
 			} catch (Exception e) {
 				throw new RuntimeException(e);

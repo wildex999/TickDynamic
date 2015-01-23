@@ -10,7 +10,8 @@ public class ValueType {
 		TShort,
 		TByte,
 		TChar,
-		TString
+		TString,
+		TType
 	};
 	public Type type;
 	public Object value;
