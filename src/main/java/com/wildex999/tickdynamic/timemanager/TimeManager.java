@@ -40,9 +40,41 @@ public class TimeManager implements ITimed {
 		this.mod = mod;
 	}
 	
+    //Initialize a time manager, reading in the configuration if it exists.
+    //If no configuration exits, create a new default.
+	@Override
+    public void init(String configEntry) {
+		setTimeMax(0);
+		
+		int configSlices = 100;
+		if(configEntry != null)
+			loadConfig(configEntry);
+		else
+			setSliceMax(mod.defaultWorldSlicesMax);
+    }
+    
+	@Override
+    public void loadConfig(String configEntry) {
+    	setSliceMax(mod.config.get(configEntry, configKeySlicesMax, mod.defaultWorldSlicesMax).getInt());
+    	
+    	//Save any new defaults
+    	mod.config.save();
+    }
+    
+	@Override
+    public void writeConfig(String configEntry, boolean saveFile) {
+		mod.config.get(configEntry, configKeySlicesMax, mod.defaultWorldSlicesMax).setValue(getSliceMax());
+		
+		if(saveFile)
+			mod.config.save();
+    }
+	
 	//Looks at current usage and rebalances the max time usage according to slices.
 	//Will call balanceTime() on children when done balancing, to propagate the new timeMax.
 	public void balanceTime() {
+		if(!mod.enabled)
+			return;
+		
 		if(TickDynamicMod.debug)
 			System.out.println(name + ": balanceTime for " + children.size() + " children, with " + timeMax + " to give.");
 		

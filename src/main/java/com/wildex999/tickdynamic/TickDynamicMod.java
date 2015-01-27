@@ -29,6 +29,7 @@ import org.objectweb.asm.*;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.wildex999.patcher.PatchParser;
+import com.wildex999.tickdynamic.commands.CommandHandler;
 import com.wildex999.tickdynamic.timemanager.ITimed;
 import com.wildex999.tickdynamic.timemanager.TimeManager;
 import com.wildex999.tickdynamic.timemanager.TimedEntities;
@@ -48,6 +49,7 @@ import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.ModMetadata;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
@@ -63,6 +65,7 @@ public class TickDynamicMod extends DummyModContainer
     
     public Map<String, ITimed> timedObjects;
     public TimeManager root;
+    public boolean enabled;
     
     //Config
     public Configuration config;
@@ -74,6 +77,7 @@ public class TickDynamicMod extends DummyModContainer
     public int defaultEntityMinimumObjects = 100;
     public int defaultTileEntitySlicesMax = 100;
     public int defaultTileEntityMinimumObjects = 100;
+    public int defaultWorldSlicesMax = 100;
     public int defaultAverageTicks = 20;
     
     public TickDynamicMod() {
@@ -101,17 +105,28 @@ public class TickDynamicMod extends DummyModContainer
     	
     	//Generate default config if not set
     	config.getCategory("general");
-    	config.setCategoryComment("general", "General settings");
-    	config.setCategoryComment("worlds.dim0", "Overworld");
-    	config.setCategoryComment("worlds.dim-1", "The Nether");
-    	config.setCategoryComment("worlds.dim1", "The End");
+    	config.setCategoryComment("general", "Slices are the way you control the time allottment to each world, and within each world, to Entities and TileEntities.\n"
+    			+ "Each tick the time for a tick(By default 50ms) will be distributed among all the worlds, according to how many slices they have.\n"
+    			+ "If you have 3 worlds, each with 100 slices, then each world will get 100/300 = ~33% of the time.\n"
+    			+ "So you can thus give the Overworld a maxSlices of 300, while giving the other two 100 each. This way the Overworld will get 60% of the time.\n"
+    			+ "\n"
+    			+ "Of the time given to the world, this is further distributed to TileEntities and Entities according tho their slices, the same way.\n"
+    			+ "If any group has unused time, then that time will be distributed to the remaining groups.\n"
+    			+ "So even if you give 1000 slices to TileEntities and 100 to Entities, as long as as TileEntities aren't using it's full time,\n"
+    			+ "Entities will be able to use more than 100 slices of time.\n"
+    			+ "\n"
+    			+ "So the formula for slices to time percentage is: (group.maxSlices/allSiblings.maxSlices)*100");
+    	
+    	enabled = config.get("general", "enabled", enabled, "").getBoolean();
     	
     	debug = config.get("general", "debug", debug, "Debug output. Warning: Setting this to true will cause a lot of console spam.\n"
     			+ "Only do it if developer or someone else asks for the output!").getBoolean();
     	
-    	defaultTickTime = config.get("worlds", "tickTime", defaultTickTime, "The time alloted to a tick in milliseconds. 20 Ticks per second means 50ms per tick.\n"
-    			+ "This is the base time allotment it will use when balacing the time usage between worlds and objects."
+    	defaultTickTime = config.get("worlds", "tickTime", defaultTickTime, "The time allotted to a tick in milliseconds. 20 Ticks per second means 50ms per tick.\n"
+    			+ "This is the base time allotment it will use when balancing the time usage between worlds and objects.\n"
     			+ "You can set this to less than 50ms if you want to leave a bit of buffer time for other things, or don't want to use 100% cpu.").getInt();
+    	
+    	defaultWorldSlicesMax = config.get("general", "defaultWorldSlicesMax", defaultWorldSlicesMax, "The default maxSlices for a new automatically added world.").getInt();
     	
     	config.setCategoryComment(configCategoryDefaultEntities, "The default values for new Entity groups when automatically created for new worlds.");
     	defaultEntitySlicesMax = config.get(configCategoryDefaultEntities, TimedGroup.configKeySlicesMax, defaultEntitySlicesMax, 
@@ -128,6 +143,7 @@ public class TickDynamicMod extends DummyModContainer
     	defaultAverageTicks = config.get("general", "averageTicks", defaultAverageTicks, "How many ticks of data to when averaging for time balancing.\n"
     			+ "A higher number will make it take regular spikes into account, however will make it slower to addjust to changes.").getInt();
     	
+    	//Save any new defaults
     	config.save();
     }
     
@@ -136,13 +152,19 @@ public class TickDynamicMod extends DummyModContainer
     	FMLCommonHandler.instance().bus().register(this);
     	timedObjects = new HashMap<String, ITimed>();
     	
-    	root = initManager("root");
+    	root = new TimeManager(this, "root");
+    	root.init(null);
     	root.setTimeMax(defaultTickTime * TimeManager.timeMilisecond);
     	TimedGroup otherTimed = new TimedGroup(this, "other");
     	otherTimed.setSliceMax(0); //Make it get unlimited time
     	root.addChild(otherTimed);
     }
     
+    
+    @Subscribe
+    public void serverStart(FMLServerStartingEvent event) {
+    	event.registerServerCommand(new CommandHandler());
+    }
 
     @SubscribeEvent
     public void tickEvent(ServerTickEvent event) {
@@ -171,28 +193,24 @@ public class TickDynamicMod extends DummyModContainer
     	return (TimeManager)timedObjects.get(name);
     }
     
-    //Initialize a manager, reading in configuration if it exists.
-    //If no configuration exists, create a new default.
-    public TimeManager initManager(String name) {
-    	TimeManager manager = new TimeManager(this, name);
-    	//TODO: Read config
-    	//TODO: Write to config
-    	manager.setSliceMax(100);
-    	
-    	return manager;
-    }
-    
     //Get the TimeManager for a world.
     //Will create if it doesn't exist.
     public TimeManager getWorldManager(World world) {
-    	String managerName = new StringBuilder().append("tm_DIM").append(world.provider.dimensionId).toString();
+    	String remote = "";
+    	if(world.isRemote)
+    		remote = "r";
+    	String managerName = new StringBuilder().append(remote).append("tm_DIM").append(world.provider.dimensionId).toString();
     	TimeManager worldManager = getManager(managerName);
     	
     	if(worldManager == null)
     	{
-    		worldManager = initManager(managerName);
+    		worldManager = new TimeManager(this, managerName);
+    		worldManager.init("worlds.dim" + world.provider.dimensionId);
     		if(world.isRemote)
     			worldManager.setSliceMax(0);
+    		
+    		config.setCategoryComment("worlds.dim" + world.provider.dimensionId, world.provider.getDimensionName());
+    		
     		//TODO: Allow for worlds to be child of other worlds
     		root.addChild(worldManager);
     	}
@@ -212,10 +230,16 @@ public class TickDynamicMod extends DummyModContainer
     	if(group == null)
     	{
     		if(type == TimedGroup.GroupType.TileEntity)
+    		{
     			group = new TimedTileEntities(this, groupName);
+    			group.init("worlds.dim" + world.provider.dimensionId + ".tileentity");
+    		}
     		else if(type == TimedGroup.GroupType.Entity)
+    		{
     			group = new TimedEntities(this, groupName);
-    		group.initGroup("worlds.dim" + world.provider.dimensionId);
+    			group.init("worlds.dim" + world.provider.dimensionId + ".entity");
+    		}
+    		
     		TimeManager worldManager = getWorldManager(world);
     		worldManager.addChild(group);
     	}

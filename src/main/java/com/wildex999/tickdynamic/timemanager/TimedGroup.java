@@ -48,7 +48,8 @@ public class TimedGroup implements ITimed {
 	
     //Initialize a timed group, reading in the configuration if it exists.
     //If no configuration exits, create a new default.
-    public void initGroup(String configEntry) {
+	@Override
+    public void init(String configEntry) {
 		timeUsed = 0;
 		objectsRun = 0;
 		setTimeMax(0);
@@ -63,6 +64,16 @@ public class TimedGroup implements ITimed {
 		setSliceMax(configSlices);
 		setMinimumObjects(configMinimumObjects);
     }
+	
+	@Override 
+	public void loadConfig(String configEntry) {
+		
+	}
+	
+	@Override 
+	public void writeConfig(String configEntry, boolean saveFile) {
+		
+	}
 	
 	//Time actual usage for this Group, call before and after the objects have executed their time.
 	//This time will be added to the current timeUsed.

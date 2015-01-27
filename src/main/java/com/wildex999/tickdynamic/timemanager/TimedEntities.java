@@ -21,15 +21,14 @@ public class TimedEntities extends TimedTileEntities {
 	//Initialize a timed Entity group, reading in the configuration if it exists.
     //If no configuration exits, create a new default.
 	@Override
-    public void initGroup(String configEntry) {
+    public void init(String configEntry) {
 		timeUsed = 0;
 		objectsRun = 0;
 		setTimeMax(0);
 		
 		if(configEntry != null)
 		{
-			setSliceMax(mod.config.get(configEntry + ".entity", configKeySlicesMax, mod.defaultEntitySlicesMax).getInt());
-			setMinimumObjects(mod.config.get(configEntry + ".entity", configKeyMinimumObjects, mod.defaultEntityMinimumObjects).getInt());
+			loadConfig(configEntry);
 		}
 		else
 		{
@@ -37,14 +36,31 @@ public class TimedEntities extends TimedTileEntities {
 			setMinimumObjects(mod.defaultEntityMinimumObjects);
 		}
 		
-		//Save any changes
-		mod.config.save();
+		
     }
+	
+	@Override
+	public void loadConfig(String configEntry) {
+		setSliceMax(mod.config.get(configEntry, configKeySlicesMax, mod.defaultEntitySlicesMax).getInt());
+		setMinimumObjects(mod.config.get(configEntry, configKeyMinimumObjects, mod.defaultEntityMinimumObjects).getInt());
+		
+		//Save any changes from defaults
+		mod.config.save();
+	}
+	
+	@Override
+	public void writeConfig(String configEntry, boolean saveFile) {
+		mod.config.get(configEntry, configKeySlicesMax, mod.defaultEntitySlicesMax).setValue(getSliceMax());
+		mod.config.get(configEntry, configKeyMinimumObjects, mod.defaultEntityMinimumObjects).setValue(getMinimumObjects());
+		
+		if(saveFile)
+			mod.config.save();
+	}
 	
 	//Called at the end of the update loop for Entities.
 	//Keeps track of position, repositions the index when needed, and ends the loop when limit has been hit
 	public int updateObjects(int index) {
-		if(world.isRemote)
+		if(world.isRemote || !mod.enabled)
 			return index; //Run remote world as normal(Client view)
 		
 		List loadedList = getWorldLoadedList(world);
