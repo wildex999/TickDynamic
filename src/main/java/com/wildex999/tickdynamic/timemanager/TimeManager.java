@@ -27,71 +27,93 @@ import com.wildex999.tickdynamic.TickDynamicMod;
 
 public class TimeManager implements ITimed {
 	private int sliceMax; //Used by parent to rebalance timeMax
-	
 	private long timeMax; //How much time allowed to use, set by parent TimeManager when balancing
-	private long timeUsed; //Measured time usage for objects(Not including child TimeManagers)
+	private List<ITimed> children;
 	
-	List<ITimed> children;
+	public final String name;
+	public final TickDynamicMod mod;
 	
 	public TimeManager(TickDynamicMod mod, String name) {
 		children = new ArrayList<ITimed>();
 		mod.timedObjects.put(name, this);
+		this.name = name;
+		this.mod = mod;
 	}
 	
 	//Looks at current usage and rebalances the max time usage according to slices.
 	//Will call balanceTime() on children when done balancing, to propagate the new timeMax.
 	public void balanceTime() {
-		//If there is no max time, then there is none for the children either
-		if(timeMax == 0)
-		{
-			for(Iterator<ITimed> it = children.iterator(); it.hasNext(); )
-				it.next().setTimeMax(0);
-			return;
-		}
+		if(TickDynamicMod.debug)
+			System.out.println(name + ": balanceTime for " + children.size() + " children, with " + timeMax + " to give.");
 		
-		//Calculate new timeMax from slices
 		long leftover = 0;
 		int allSlices = 0;
+		int allSlicesPrev;
 		List<ITimed> childrenLeft = new ArrayList<ITimed>(children);
-		for(Iterator<ITimed> it = children.iterator(); it.hasNext(); )
-			allSlices += it.next().getSliceMax();
-		//Round 1
+		leftover = timeMax;
+		
+		//Set the initial distribution
 		for(Iterator<ITimed> it = childrenLeft.iterator(); it.hasNext(); )
 		{
-			ITimed child = it.next();
-			child.setTimeMax((long)(timeMax * ((double)child.getSliceMax() / (double)allSlices)) );
-			long left = child.getTimeMax() - child.getTimeUsed();
-			if(left > 0)
-				leftover += left;
+			ITimed timed = it.next();
+			timed.setTimeMax(0);
+			allSlices += timed.getSliceMax();
+			
+			//Special cases: sliceMax == 0. These will not be limited by the timeMax, but will still take time from the others
+			if(timed.getSliceMax() == 0)
+			{
+				leftover -= timed.getTimeUsedAverage();
+				it.remove();
+				if(leftover <= 0)
+					leftover = 1;
+			}
 		}
+		allSlicesPrev = allSlices; //Used for last redistribution of leftover
 		
-		//Calculate and redistribute leftovers according to slices(Round 2+)
+		//Calculate and redistribute according to slices
 		while(leftover > 0 && childrenLeft.size() > 0)
 		{
 			long before = leftover; //Store the value as we make changes to leftover as we go
+			if(TickDynamicMod.debug)
+				System.out.println("Leftover: " + leftover);
 			for(Iterator<ITimed> it = childrenLeft.iterator(); it.hasNext(); )
 			{
 				ITimed child = it.next();
-				long currentMax = child.getTimeMax();
-				long slice = (long)(before * ((double)child.getSliceMax() / (double)allSlices));
-				currentMax += slice;
-				leftover -= slice;
+				long slice = 1 + (long)(before * ((double)child.getSliceMax() / (double)allSlices)); //A slice can't be 0
+				long currentMax = child.getTimeMax() + slice;
+				if(currentMax > 0)
+					leftover -= slice;
 		
 				//If more than 1% to spare, put into leftover pool
-				long left = currentMax - child.getTimeUsed();
+				long left = currentMax - child.getTimeUsedAverage();
 				if(left > (currentMax/100.0))
 				{
 					//Give back what will be unused
-					leftover += (left-(currentMax/100.0)); //Leave 1% for further growth
+					long giveBack = (long) (left-(currentMax/100.0)); //Leave 1% for further growth
+					leftover += giveBack; 
+					currentMax -= giveBack;
 					it.remove(); //Remove for further distribution
 					allSlices -= child.getSliceMax(); //Remove it's contribution to allSlices so percentages becomes correct
 				}
-				child.setTimeMax(currentMax); //Update the max
+				child.setTimeMax(currentMax+1); //Update the max
 			}
 		}
 		
+		//Give back any remaining leftover for growth
+		if(leftover > 0)
+		{
+			for(ITimed child : children ) {
+				long slice = (long)(leftover * ((double)child.getSliceMax() / (double)allSlicesPrev)); //A slice can't be 0
+				child.setTimeMax(child.getTimeMax() + slice);
+			}
+		}
+			
 		
-		
+		//Initiate rebalance on children
+		for(ITimed child : children) {
+			if(child.isManager())
+				((TimeManager)child).balanceTime();
+		}
 	}
 	
 	public void addChild(ITimed object) {
@@ -104,6 +126,8 @@ public class TimeManager implements ITimed {
 	//Set the current time allotment for this TimeManager
 	@Override
 	public void setTimeMax(long newTimeMax) {
+		if(TickDynamicMod.debug)
+			System.out.println(name + ": setTimeMax: " + newTimeMax);
 		timeMax = newTimeMax;
 	}
 	@Override
@@ -125,7 +149,7 @@ public class TimeManager implements ITimed {
 	//Note: This will recursively call down the whole child tree, cache this value when possible.
 	@Override
 	public long getTimeUsed() {
-		long output = timeUsed;
+		long output = 0;
 		
 		for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
 		{
@@ -135,18 +159,38 @@ public class TimeManager implements ITimed {
 		
 		return output;
 	}
+	public long getTimeUsedAverage() {
+		long output = 0;
+		
+		for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
+		{
+			ITimed child = it.next();
+			output += child.getTimeUsedAverage();
+		}
+		
+		return output;
+	}
+	public long getTimeUsedLast() {
+		long output = 0;
+		
+		for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
+		{
+			ITimed child = it.next();
+			output += child.getTimeUsedLast();
+		}
+		
+		return output;
+	}
 	
-	//Clear the current timeUsed. Usually called at the beginning of a new tick.
-	//clearChildren: Whether to also clear for children(Who will clear for their children)(Recursion)
+	//Called at the beginning of a new tick to prepare for new time capture etc.
+	//clearChildren: Whether to also call for children(Who will call for their children)(Recursion)
 	@Override
-	public void clearTimeUsed(boolean clearChildren) {
-		//TODO: Write current timeUsed into a table for computing averages
-		timeUsed = 0;
+	public void newTick(boolean clearChildren) {
 		
 		if(clearChildren)
 		{
 			for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
-				it.next().clearTimeUsed(true);
+				it.next().newTick(true);
 		}
 			
 	}

@@ -2,6 +2,7 @@ package net.minecraft.world;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockHopper;
 import net.minecraft.block.BlockLiquid;
@@ -44,6 +46,21 @@ import net.minecraft.util.ReportedException;
 import net.minecraft.util.Vec3;
 import net.minecraft.village.VillageCollection;
 import net.minecraft.village.VillageSiege;
+import net.minecraft.world.ChunkCache;
+import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.world.ChunkPosition;
+import net.minecraft.world.EnumDifficulty;
+import net.minecraft.world.EnumSkyBlock;
+import net.minecraft.world.Explosion;
+import net.minecraft.world.GameRules;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IWorldAccess;
+import net.minecraft.world.MinecraftException;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldProvider;
+import net.minecraft.world.WorldSavedData;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.WorldSettings;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.biome.WorldChunkManager;
 import net.minecraft.world.chunk.Chunk;
@@ -51,7 +68,6 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.WorldInfo;
-
 import cpw.mods.fml.common.FMLLog;
 
 import com.google.common.collect.ImmutableSetMultimap;
@@ -1862,8 +1878,12 @@ public abstract class World implements IBlockAccess
 
         this.unloadedEntityList.clear();
         this.theProfiler.endStartSection("regular");
+        
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").endTimer();
+        com.wildex999.tickdynamic.timemanager.TimedEntities timedEntityGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldEntities(this);
+        timedEntityGroup.startTimer();
 
-        for (i = 0; i < this.loadedEntityList.size(); ++i)
+        for (i = timedEntityGroup.startUpdateObjects(this); i < this.loadedEntityList.size(); ++i)
         {
             entity = (Entity)this.loadedEntityList.get(i);
 
@@ -1921,13 +1941,19 @@ public abstract class World implements IBlockAccess
                 this.onEntityRemoved(entity);
             }
 
+            i = timedEntityGroup.updateObjects(i);
             this.theProfiler.endSection();
         }
+        
+        timedEntityGroup.endTimer();
 
         this.theProfiler.endStartSection("blockEntities");
         this.field_147481_N = true;
-        Iterator iterator = this.loadedTileEntityList.iterator();
-
+        
+        com.wildex999.tickdynamic.timemanager.TimedTileEntities timedTileGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldTileEntities(this);
+        Iterator iterator = this.loadedTileEntityList.listIterator(timedTileGroup.startUpdateObjects(this));
+        timedTileGroup.startTimer();
+        
         while (iterator.hasNext())
         {
             TileEntity tileentity = (TileEntity)iterator.next();
@@ -1970,8 +1996,12 @@ public abstract class World implements IBlockAccess
                     }
                 }
             }
+            iterator = timedTileGroup.updateObjects(iterator);
         }
-
+        
+        timedTileGroup.endTimer();
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").startTimer();
+        
         if (!this.field_147483_b.isEmpty())
         {
             for (Object tile : field_147483_b)

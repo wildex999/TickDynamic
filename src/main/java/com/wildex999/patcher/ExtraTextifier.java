@@ -1,4 +1,4 @@
-package patcher;
+package com.wildex999.patcher;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;

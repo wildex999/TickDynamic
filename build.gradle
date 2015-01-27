@@ -66,59 +66,17 @@ processResources
     }
 }
 
+sourceSets {
+    main {
+        java {
+            exclude 'net/**'
+       }
+   }
+}
+
 jar {
     manifest {
         attributes 'FMLCorePlugin': 'com.wildex999.tickdynamic.LoadingPlugin',
                     'FMLCorePluginContainsFMLMod': 'true'
     }
 }
-
-ext.serverExcludes = []
-
-task patcherJar(type: Jar, dependsOn: ['build']) {
-    manifest {
-        attributes 'Main-Class': 'patcher.Patcher'
-    }
-    
-    baseName = "patcher"
-
-    from(sourceSets.main.output) {  
-        include "patcher/**" 
-        project.ext.serverExcludes.addAll(includes)
-    }   
-}
-
-task createPatches(dependsOn: ['patcherJar', 'build']) {
-    doLast {
-    //Find the complete Forge jar for our current version, used as the base for our patches
-    //String baseJar = project.configurations.compile.find { it.name.endsWith('forgeSrc-' + fullversion + '.jar') }
-    String baseJar = project.getProjectDir().getAbsolutePath() + '/forgeBase/forge-' + fullversion + '-base.jar'
-        javaexec {
-            main = "patcher.Patcher"
-            args = [baseJar, 
-                    project.getProjectDir().getAbsolutePath() + '/' + patchesSourcePath + archivesBaseName + '-' + version + ".jar", 
-                    project.getProjectDir().getAbsolutePath() + '/' + patchesOutputPath + '/'].toList()
-            classpath = configurations.compile + files("${projectDir}/build/libs/patcher-" + version + ".jar") 
-        }
-    }
-}
-
-task buildFinal(dependsOn: ['createPatches']) {
-
-    //Exlude any classes that will be patched instead, from compiling
-    FileTree patchedFiles = fileTree(dir: patchesOutputPath, include: '**/*.patch')
-    //sourceSets.main.java.excludes += "net/**"
-    patchedFiles.each {
-        File file -> 
-        String name = file.getPath()
-        int index = name.indexOf('.')
-        int offset = (project.getProjectDir().getAbsolutePath() + '\\' + patchesOutputPath).length()+1
-        String finalName = (name.substring(offset, index) + ".java")
-        sourceSets.main.java.excludes += finalName
-    }   
-    doLast {
-        jar.execute();
-    }
-}
-//buildFinal.mustRunAfter(createPatches)
-//buildFinal.finalizedBy(jar)

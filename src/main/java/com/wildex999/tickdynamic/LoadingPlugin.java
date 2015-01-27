@@ -2,7 +2,10 @@ package com.wildex999.tickdynamic;
 
 import java.util.Map;
 
-import patcher.TransformerPatcher;
+import net.minecraft.launchwrapper.Launch;
+
+import com.wildex999.patcher.TransformerPatcher;
+
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.Name;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.DependsOn;
@@ -18,7 +21,13 @@ public class LoadingPlugin implements IFMLLoadingPlugin {
 
 	@Override
 	public String[] getASMTransformerClass() {
-		return new String[] { TransformerPatcher.class.getName() };
+		boolean developmentEnvironment = (Boolean)Launch.blackboard.get("fml.deobfuscatedEnvironment");
+		
+		//Only return the patcher if running in live environment, to allow for testing when running from eclipse
+		if(!developmentEnvironment)
+			return new String[] { TransformerPatcher.class.getName() };
+		else
+			return new String[] { };
 	}
 
 	@Override
@@ -33,7 +42,6 @@ public class LoadingPlugin implements IFMLLoadingPlugin {
 
 	@Override
 	public void injectData(Map<String, Object> data) {
-		// TODO Auto-generated method stub
 		
 	}
 

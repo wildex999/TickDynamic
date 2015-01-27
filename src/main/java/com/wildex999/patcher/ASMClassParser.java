@@ -1,4 +1,4 @@
-package patcher;
+package com.wildex999.patcher;
 
 import java.io.DataInputStream;
 import java.io.InputStream;
@@ -362,7 +362,7 @@ public class ASMClassParser {
 			{
 				//Move back from our peek
 				currentToken--;
-				System.out.println("Access: " + Integer.toHexString(access).toUpperCase());
+				//System.out.println("Access: " + Integer.toHexString(access).toUpperCase());
 				return access;
 			}
 		}
@@ -397,7 +397,7 @@ public class ASMClassParser {
 			currentToken--; //Go back from our peek
 		
 		FieldVisitor field = cl.visitField(access, name, desc, signature, fieldValue);
-		System.out.println("Field: " + Integer.toHexString(access).toUpperCase() + " | " + name + " | " + desc + " | " + fieldValue);
+		//System.out.println("Field: " + Integer.toHexString(access).toUpperCase() + " | " + name + " | " + desc + " | " + fieldValue);
 		
 		if(!nextToken().equals("\n"))
 			throw new Exception("Error: Expected newline while parsing field: " + name + "! Got: " + getCurrentToken());
@@ -437,7 +437,7 @@ public class ASMClassParser {
 		if(token == null || token.length() == 0 || token.length() == 2)
 			return; //Nothing to parse
 		
-		System.out.println("Parse annotation: " + token);
+		//System.out.println("Parse annotation: " + token);
 		
 		//TODO: Handle escaped quotes properly
 		if(token.contains("\\\""))
@@ -464,7 +464,7 @@ public class ASMClassParser {
 				value = token.substring(offset+1, index);
 				
 				anno.visit(valueName, value);
-				System.out.println("AnnotationStr: " + valueName + "=" + value);
+				//System.out.println("AnnotationStr: " + valueName + "=" + value);
 				
 				offset = index+1;
 			}
@@ -491,14 +491,14 @@ public class ASMClassParser {
 					
 					String entryName = token.substring(offset+1, index);
 					anno.visitEnum(valueName, value, entryName);
-					System.out.println("AnnotationEnum: " + valueName + "=" + value + "." + entryName);
+					//System.out.println("AnnotationEnum: " + valueName + "=" + value + "." + entryName);
 					
 					offset = index;
 				}
 				else
 				{
 					anno.visit(valueName, org.objectweb.asm.Type.getType(value));
-					System.out.println("AnnotationObj: " + valueName + "=" + value);
+					//System.out.println("AnnotationObj: " + valueName + "=" + value);
 				}
 				
 			} else {
@@ -511,7 +511,7 @@ public class ASMClassParser {
 				
 				ValueType parsedValue = parseValue(value);
 				anno.visit(valueName, parsedValue.value);
-				System.out.println("AnnotationBoolNr: " + valueName + "=" + parsedValue.value);
+				//System.out.println("AnnotationBoolNr: " + valueName + "=" + parsedValue.value);
 				offset = index;
 			}
 			
@@ -631,7 +631,7 @@ public class ASMClassParser {
 		methodName = value.substring(0, index);
 		desc = value.substring(index);
 		
-		System.out.println("Parsing method: " + methodName + " Desc: " + desc);
+		//System.out.println("Parsing method: " + methodName + " Desc: " + desc);
 		
 		value = nextToken();
 		
@@ -945,7 +945,6 @@ public class ASMClassParser {
 				throw new Exception("Error while parsing method: Expected MAXLOCALS, got: " + getCurrentToken());
 			currentToken++;
 			int maxLocals = Integer.parseInt(nextToken());
-			
 			method.visitMaxs(maxStack, maxLocals);
 		}
 		//For now we asume(As has been observed) that MAXSTACK and MAXLOCALS always are together in the same order

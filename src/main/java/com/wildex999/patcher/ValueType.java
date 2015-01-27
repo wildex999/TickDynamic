@@ -1,4 +1,4 @@
-package patcher;
+package com.wildex999.patcher;
 
 public class ValueType {
 	public enum Type {
