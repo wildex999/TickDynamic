@@ -10,13 +10,14 @@ public interface ITimed {
 
 	//Initialize, reading in the configuration if it exists.
     //If no configuration exits, create a new default.
-    public void init(String configEntry);
+    public void init();
     
     //Load config
-    public void loadConfig(String configEntry);
+    //saveDefaults: Whether to save to file when done, to save any potential new defaults
+    public void loadConfig(boolean saveDefaults);
 
     //Write changes to config, and save to file it set
-    public void writeConfig(String configEntry, boolean saveFile);
+    public void writeConfig(boolean saveFile);
     
 	//Set the current time allotment for this object(In nanoseconds)
 	public void setTimeMax(long newTimeMax);

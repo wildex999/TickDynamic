@@ -28,6 +28,8 @@ public class TimedGroup implements ITimed {
 	
 	public final String name;
 	public final TickDynamicMod mod;
+	public final World world;
+	public String configEntry;
 	
 	public static final String configKeyMinimumObjects = "minimumObjects";
 	
@@ -37,10 +39,12 @@ public class TimedGroup implements ITimed {
 		Other
 	}
 	
-	public TimedGroup(TickDynamicMod mod, String name) {
+	public TimedGroup(TickDynamicMod mod, World world, String name, String configEntry) {
 		mod.timedObjects.put(name, this);
 		this.name = name;
 		this.mod = mod;
+		this.world = world;
+		this.configEntry = configEntry;
 		
 		listTimeUsed = new LinkedList<Long>();
 		listObjectsRun = new LinkedList<Integer>();
@@ -49,7 +53,7 @@ public class TimedGroup implements ITimed {
     //Initialize a timed group, reading in the configuration if it exists.
     //If no configuration exits, create a new default.
 	@Override
-    public void init(String configEntry) {
+    public void init() {
 		timeUsed = 0;
 		objectsRun = 0;
 		setTimeMax(0);
@@ -66,12 +70,12 @@ public class TimedGroup implements ITimed {
     }
 	
 	@Override 
-	public void loadConfig(String configEntry) {
-		
+	public void loadConfig(boolean saveDefaults) {
+
 	}
 	
 	@Override 
-	public void writeConfig(String configEntry, boolean saveFile) {
+	public void writeConfig(boolean saveFile) {
 		
 	}
 	

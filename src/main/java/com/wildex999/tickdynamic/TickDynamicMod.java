@@ -14,8 +14,11 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.concurrent.Semaphore;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -28,6 +31,7 @@ import org.objectweb.asm.*;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.google.common.util.concurrent.AtomicDouble;
 import com.wildex999.patcher.PatchParser;
 import com.wildex999.tickdynamic.commands.CommandHandler;
 import com.wildex999.tickdynamic.timemanager.ITimed;
@@ -38,6 +42,7 @@ import com.wildex999.tickdynamic.timemanager.TimedGroup.GroupType;
 import com.wildex999.tickdynamic.timemanager.TimedTileEntities;
 
 import net.minecraft.init.Blocks;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Configuration;
@@ -50,10 +55,18 @@ import cpw.mods.fml.common.ModMetadata;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.event.FMLServerStoppingEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 
+//Written by: Wildex999 ( wildex999@gmail.com )
+
+/*
+ * Later ideas:
+ * - Entities far away from players tick less often.
+ * - Entities and TileEntities grouped by owner(Player), and limits can be set per player.
+ */
 
 public class TickDynamicMod extends DummyModContainer
 {
@@ -66,6 +79,14 @@ public class TickDynamicMod extends DummyModContainer
     public Map<String, ITimed> timedObjects;
     public TimeManager root;
     public boolean enabled;
+    public MinecraftServer server;
+    
+    public Semaphore tpsMutex;
+    public Timer tpsTimer;
+    public int tickCounter;
+    public double averageTPS;
+    public int tpsAverageSeconds = 5; //Seconds to average TPS over
+    public LinkedList<Integer> tpsList; //List of latest TPS for calculating average
     
     //Config
     public Configuration config;
@@ -90,6 +111,9 @@ public class TickDynamicMod extends DummyModContainer
     	meta.authorList.add("Wildex999 ( wildex999@gmail.com )");
     	
     	tickDynamic = this;
+    	tpsMutex = new Semaphore(1);
+    	tpsTimer = new Timer();
+    	tpsList = new LinkedList<Integer>();
     }
     
     @Override
@@ -101,6 +125,12 @@ public class TickDynamicMod extends DummyModContainer
     @Subscribe
     public void preInit(FMLPreInitializationEvent event) {
     	config = new Configuration(event.getSuggestedConfigurationFile());
+    	loadConfig(false);
+    }
+    
+    //Load the configuration file
+    //includeExisting: Whether to reload the config options for already loaded Managers and Groups.
+    public void loadConfig(boolean includeExisting) {
     	config.load();
     	
     	//Generate default config if not set
@@ -110,14 +140,18 @@ public class TickDynamicMod extends DummyModContainer
     			+ "If you have 3 worlds, each with 100 slices, then each world will get 100/300 = ~33% of the time.\n"
     			+ "So you can thus give the Overworld a maxSlices of 300, while giving the other two 100 each. This way the Overworld will get 60% of the time.\n"
     			+ "\n"
-    			+ "Of the time given to the world, this is further distributed to TileEntities and Entities according tho their slices, the same way.\n"
+    			+ "Of the time given to the world, this is further distributed to TileEntities and Entities according to their slices, the same way.\n"
+    			+ "TileEntities and Entities are given a portion of the time first given to the world, so their slices are only relative to each other within that world."
     			+ "If any group has unused time, then that time will be distributed to the remaining groups.\n"
     			+ "So even if you give 1000 slices to TileEntities and 100 to Entities, as long as as TileEntities aren't using it's full time,\n"
     			+ "Entities will be able to use more than 100 slices of time.\n"
     			+ "\n"
-    			+ "So the formula for slices to time percentage is: (group.maxSlices/allSiblings.maxSlices)*100");
+    			+ "So the formula for slices to time percentage is: (group.maxSlices/allSiblings.maxSlices)*100\n"
+    			+ "\n"
+    			+ "Note: maxSlices = 0 has a special meaning. It means that the group's time usage is accounted for, but not limited.\n"
+    			+ "Basically it can take all the time it needs, even if it goes above the parent maxTime, pushing its siblings down to minimumObjects.");
     	
-    	enabled = config.get("general", "enabled", enabled, "").getBoolean();
+    	enabled = config.get("general", "enabled", true, "").getBoolean();
     	
     	debug = config.get("general", "debug", debug, "Debug output. Warning: Setting this to true will cause a lot of console spam.\n"
     			+ "Only do it if developer or someone else asks for the output!").getBoolean();
@@ -143,8 +177,18 @@ public class TickDynamicMod extends DummyModContainer
     	defaultAverageTicks = config.get("general", "averageTicks", defaultAverageTicks, "How many ticks of data to when averaging for time balancing.\n"
     			+ "A higher number will make it take regular spikes into account, however will make it slower to addjust to changes.").getInt();
     	
+    	if(includeExisting) {
+    		
+    		for(ITimed timed : timedObjects.values())
+    			timed.loadConfig(false);
+    	}
+    	
     	//Save any new defaults
     	config.save();
+    }
+    
+    public void writeConfig(boolean saveFile) {
+    	
     }
     
     @Subscribe
@@ -152,10 +196,10 @@ public class TickDynamicMod extends DummyModContainer
     	FMLCommonHandler.instance().bus().register(this);
     	timedObjects = new HashMap<String, ITimed>();
     	
-    	root = new TimeManager(this, "root");
-    	root.init(null);
+    	root = new TimeManager(this, null, "root", null);
+    	root.init();
     	root.setTimeMax(defaultTickTime * TimeManager.timeMilisecond);
-    	TimedGroup otherTimed = new TimedGroup(this, "other");
+    	TimedGroup otherTimed = new TimedGroup(this, null, "other", null);
     	otherTimed.setSliceMax(0); //Make it get unlimited time
     	root.addChild(otherTimed);
     }
@@ -163,7 +207,17 @@ public class TickDynamicMod extends DummyModContainer
     
     @Subscribe
     public void serverStart(FMLServerStartingEvent event) {
-    	event.registerServerCommand(new CommandHandler());
+    	event.registerServerCommand(new CommandHandler(this));
+    	
+    	tpsTimer.schedule(new TimerTickTask(this), 1000, 1000);
+    	
+    	server = event.getServer();
+    }
+    
+    @Subscribe
+    public void serverStop(FMLServerStoppingEvent event) {
+    	tpsTimer.cancel();
+    	server = null;
     }
 
     @SubscribeEvent
@@ -173,6 +227,7 @@ public class TickDynamicMod extends DummyModContainer
 	        //Clear any values from the previous tick for all worlds.
     		root.newTick(true);
     		
+    		getGroup("other").newTick(false);
     		getGroup("other").startTimer();
     	} else {    		
     		getGroup("other").endTimer();
@@ -182,7 +237,32 @@ public class TickDynamicMod extends DummyModContainer
     		//After every world is done ticking, re-balance the time slices according
     	    //to the data gathered during the tick.
     		root.balanceTime();
+    		
+    		//Calculate TPS
+    		updateTPS();
+    		
+    		
     	}
+    }
+    
+    //Calculate the new average TPS
+    //Note: acquires a mutex due to contention with timer thread on tickCounter and tpsList.
+    public void updateTPS() {
+		try {
+			tpsMutex.acquire();
+			tickCounter++;
+			
+			//Calculate average from list
+			averageTPS = 0;
+			for(int tps : tpsList) {
+				averageTPS += tps;
+			}
+			averageTPS = averageTPS / tpsList.size();
+			
+			tpsMutex.release();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
     }
     
     public TimedGroup getGroup(String name) {
@@ -204,8 +284,8 @@ public class TickDynamicMod extends DummyModContainer
     	
     	if(worldManager == null)
     	{
-    		worldManager = new TimeManager(this, managerName);
-    		worldManager.init("worlds.dim" + world.provider.dimensionId);
+    		worldManager = new TimeManager(this, world, managerName, "worlds.dim" + world.provider.dimensionId);
+    		worldManager.init();
     		if(world.isRemote)
     			worldManager.setSliceMax(0);
     		
@@ -231,13 +311,13 @@ public class TickDynamicMod extends DummyModContainer
     	{
     		if(type == TimedGroup.GroupType.TileEntity)
     		{
-    			group = new TimedTileEntities(this, groupName);
-    			group.init("worlds.dim" + world.provider.dimensionId + ".tileentity");
+    			group = new TimedTileEntities(this, world, groupName, "worlds.dim" + world.provider.dimensionId + ".tileentity");
+    			group.init();
     		}
     		else if(type == TimedGroup.GroupType.Entity)
     		{
-    			group = new TimedEntities(this, groupName);
-    			group.init("worlds.dim" + world.provider.dimensionId + ".entity");
+    			group = new TimedEntities(this, world, groupName, "worlds.dim" + world.provider.dimensionId + ".entity");
+    			group.init();
     		}
     		
     		TimeManager worldManager = getWorldManager(world);

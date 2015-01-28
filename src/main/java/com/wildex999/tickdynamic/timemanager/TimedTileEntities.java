@@ -1,6 +1,7 @@
 package com.wildex999.tickdynamic.timemanager;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
@@ -12,21 +13,30 @@ public class TimedTileEntities extends TimedGroup {
 	protected int remainingObjects; //Remaining objects for current update cycle
 	protected World world; //World for this group
 	
-	public TimedTileEntities(TickDynamicMod mod, String name) {
-		super(mod, name);
+	//TPS calculation
+	protected double currentTPS;
+	protected LinkedList<Double> listTPS;
+	public double averageTPS;
+
+	
+	public TimedTileEntities(TickDynamicMod mod, World world, String name, String configEntry) {
+		super(mod, world, name, configEntry);
+		
 	}
 	
     //Initialize a timed Tile Entity group, reading in the configuration if it exists.
     //If no configuration exits, create a new default.
 	@Override
-    public void init(String configEntry) {
+    public void init() {
 		timeUsed = 0;
 		objectsRun = 0;
+		currentTPS = 0;
+		listTPS = new LinkedList<Double>();
 		setTimeMax(0);
 		
 		if(configEntry != null)
 		{
-			loadConfig(configEntry);
+			loadConfig(true);
 		}
 		else
 		{
@@ -37,16 +47,23 @@ public class TimedTileEntities extends TimedGroup {
     }
 	
 	@Override
-	public void loadConfig(String configEntry) {
+	public void loadConfig(boolean saveDefaults) {
+		if(configEntry == null)
+			return;
+		
 		setSliceMax(mod.config.get(configEntry, configKeySlicesMax, mod.defaultTileEntitySlicesMax).getInt());
 		setMinimumObjects(mod.config.get(configEntry, configKeyMinimumObjects, mod.defaultTileEntityMinimumObjects).getInt());
 		
 		//Save any default values
-		mod.config.save();
+		if(saveDefaults)
+			mod.config.save();
 	}
 	
 	@Override
-	public void writeConfig(String configEntry, boolean saveFile) {
+	public void writeConfig(boolean saveFile) {
+		if(configEntry == null)
+			return;
+		
 		mod.config.get(configEntry, configKeySlicesMax, mod.defaultTileEntitySlicesMax).setValue(getSliceMax());
 		mod.config.get(configEntry, configKeyMinimumObjects, mod.defaultTileEntityMinimumObjects).setValue(getMinimumObjects());
 		
@@ -88,6 +105,12 @@ public class TimedTileEntities extends TimedGroup {
 		if(remainingObjects > loadedList.size())
 			remainingObjects = loadedList.size();
 		
+		//Calculate TPS
+		if(loadedList.size() > 0)
+			currentTPS += (remainingObjects/(double)loadedList.size())*20.0;
+		else
+			currentTPS += 20;
+		
 		if(currentObjectIndex >= loadedList.size())
 			currentObjectIndex = 0;
 		if(TickDynamicMod.debug)
@@ -117,6 +140,22 @@ public class TimedTileEntities extends TimedGroup {
 			return loadedList.iterator();
 		else
 			return iterator;
+	}
+	
+	@Override
+	public void newTick(boolean clearChildren) {
+		super.newTick(clearChildren);
+		
+		//Calculate average TPS
+		if(listTPS.size() >= mod.defaultAverageTicks)
+			listTPS.removeFirst();
+		listTPS.add(currentTPS);
+		
+		currentTPS = 0;
+		averageTPS = 0;
+		for(double tps : listTPS)
+			averageTPS += tps;
+		averageTPS = averageTPS / listTPS.size();
 	}
 
 	//Get the loaded list of Entities/TileEntities

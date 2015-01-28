@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.world.World;
+
 import com.wildex999.tickdynamic.TickDynamicMod;
 
 //Written by Kai Roar Stjern ( wildex999@gmail.com )
@@ -32,37 +34,48 @@ public class TimeManager implements ITimed {
 	
 	public final String name;
 	public final TickDynamicMod mod;
+	public final World world;
+	public String configEntry;
 	
-	public TimeManager(TickDynamicMod mod, String name) {
+	public TimeManager(TickDynamicMod mod, World world,  String name, String configEntry) {
 		children = new ArrayList<ITimed>();
 		mod.timedObjects.put(name, this);
 		this.name = name;
 		this.mod = mod;
+		this.world = world;
+		this.configEntry = configEntry;
 	}
 	
     //Initialize a time manager, reading in the configuration if it exists.
     //If no configuration exits, create a new default.
 	@Override
-    public void init(String configEntry) {
+    public void init() {
 		setTimeMax(0);
 		
 		int configSlices = 100;
 		if(configEntry != null)
-			loadConfig(configEntry);
+			loadConfig(true);
 		else
 			setSliceMax(mod.defaultWorldSlicesMax);
     }
     
 	@Override
-    public void loadConfig(String configEntry) {
+    public void loadConfig(boolean saveDefaults) {
+		if(configEntry == null)
+			return;
+		
     	setSliceMax(mod.config.get(configEntry, configKeySlicesMax, mod.defaultWorldSlicesMax).getInt());
     	
     	//Save any new defaults
-    	mod.config.save();
+    	if(saveDefaults)
+    		mod.config.save();
     }
     
 	@Override
-    public void writeConfig(String configEntry, boolean saveFile) {
+    public void writeConfig(boolean saveFile) {
+		if(configEntry == null)
+			return;
+		
 		mod.config.get(configEntry, configKeySlicesMax, mod.defaultWorldSlicesMax).setValue(getSliceMax());
 		
 		if(saveFile)
@@ -225,6 +238,10 @@ public class TimeManager implements ITimed {
 				it.next().newTick(true);
 		}
 			
+	}
+	
+	public List<ITimed> getChildren() {
+		return children;
 	}
 	
 	@Override
