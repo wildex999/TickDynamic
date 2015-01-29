@@ -56,9 +56,11 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppingEvent;
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
+import cpw.mods.fml.common.network.NetworkRegistry;
 
 //Written by: Wildex999 ( wildex999@gmail.com )
 
@@ -80,6 +82,9 @@ public class TickDynamicMod extends DummyModContainer
     public TimeManager root;
     public boolean enabled;
     public MinecraftServer server;
+    
+    VersionChecker versionChecker;
+    public boolean versionCheckDone;
     
     public Semaphore tpsMutex;
     public Timer tpsTimer;
@@ -109,11 +114,14 @@ public class TickDynamicMod extends DummyModContainer
     	meta.name = "Tick Dynamic";
     	meta.description = "Dynamic control of the world tickrate to reduce apparent lag.";
     	meta.authorList.add("Wildex999 ( wildex999@gmail.com )");
+    	meta.updateUrl = "http://mods.stjerncraft.com/tickdynamic";
+    	meta.url = "http://mods.stjerncraft.com/tickdynamic";
     	
     	tickDynamic = this;
     	tpsMutex = new Semaphore(1);
     	tpsTimer = new Timer();
     	tpsList = new LinkedList<Integer>();
+    	versionChecker = new VersionChecker();
     }
     
     @Override
@@ -188,7 +196,7 @@ public class TickDynamicMod extends DummyModContainer
     }
     
     public void writeConfig(boolean saveFile) {
-    	
+    	//TODO
     }
     
     @Subscribe
@@ -210,6 +218,9 @@ public class TickDynamicMod extends DummyModContainer
     	event.registerServerCommand(new CommandHandler(this));
     	
     	tpsTimer.schedule(new TimerTickTask(this), 1000, 1000);
+    	versionCheckDone = false;
+    	versionChecker.runVersionCheck();
+    	
     	
     	server = event.getServer();
     }
@@ -220,28 +231,48 @@ public class TickDynamicMod extends DummyModContainer
     	server = null;
     }
 
-    @SubscribeEvent
-    public void tickEvent(ServerTickEvent event) {
+    @SubscribeEvent(priority=EventPriority.HIGHEST)
+    public void tickEventStart(ServerTickEvent event) {
     	if(event.phase == Phase.START)
     	{
+    		if(!versionCheckDone)
+    		{
+    			VersionChecker.VersionData versionData = versionChecker.getVersionData();
+    			if(versionData != null)
+    			{
+    				versionCheckDone = true;
+    				if(versionData.checkOk)
+    				{
+	    				//TODO: Parse versions, split at ',', then split version numbers at '.'
+	    				System.out.println("TickDynamic version check: Latest version = " + versionData.modVersion + " Download URL: http://" + versionData.updateUrl);
+    				}
+    				else
+    					System.out.println("TickDynamic version check: Error while checking latest version!");
+    			}
+    		}
+    		
 	        //Clear any values from the previous tick for all worlds.
     		root.newTick(true);
     		
-    		getGroup("other").newTick(false);
     		getGroup("other").startTimer();
-    	} else {    		
-    		getGroup("other").endTimer();
-    		
-    		if(debug)
-    			System.out.println("Tick time used: " + (root.getTimeUsed()/root.timeMilisecond) + "ms");
-    		//After every world is done ticking, re-balance the time slices according
-    	    //to the data gathered during the tick.
-    		root.balanceTime();
-    		
-    		//Calculate TPS
-    		updateTPS();
-    		
-    		
+    	}
+    }
+    
+    @SubscribeEvent(priority=EventPriority.LOWEST)
+    public void tickEventEnd(ServerTickEvent event) {	
+    	if(event.phase == Phase.END)
+    	{
+	     	getGroup("other").endTimer();
+	     	
+	     	if(debug)
+	     		System.out.println("Tick time used: " + (root.getTimeUsed()/root.timeMilisecond) + "ms");
+	     	
+	     	//After every world is done ticking, re-balance the time slices according
+	     	   //to the data gathered during the tick.
+	     	root.balanceTime();
+	     	
+	     	//Calculate TPS
+	     	updateTPS();
     	}
     }
     

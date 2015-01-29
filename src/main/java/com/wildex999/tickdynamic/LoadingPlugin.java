@@ -13,7 +13,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin.MCVersion;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.SortingIndex;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.TransformerExclusions;
 
-@SortingIndex(1001) //Run after deobfuscation
+@SortingIndex(1009) //Run after deobfuscation, and try to run after most other coremods
 @MCVersion("1.7.10")
 @DependsOn("forge")
 //@TransformerExclusions({ "com.wildex999.transformers.", "com.wildex999.transformers.transformer1" })

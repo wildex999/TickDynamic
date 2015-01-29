@@ -35,7 +35,7 @@ public class CommandList implements ICommand {
 	private int maxEntityWidth;
 	private boolean gotWorldData;
 	
-	private int rowsPerPage = 10;
+	private int rowsPerPage = 6;
 	private int currentPage;
 	private int maxPages;
 	
@@ -508,9 +508,16 @@ public class CommandList implements ICommand {
 		
 		for(WorldServer world : mod.server.worldServers)
 		{
-			if(world.isRemote)
+			String name = "NULL";
+			String dimId = "NULL";
+			if(world == null || world.isRemote)
 				continue; //Ignore local remote
-			builder.append("DIM").append(world.provider.dimensionId).append(": ").append(world.provider.getDimensionName()).append("\n");
+			if(world.provider != null)
+			{
+				dimId = ""+world.provider.dimensionId;
+				name = world.provider.getDimensionName();
+			}
+			builder.append("DIM").append(dimId).append(": ").append(name).append("\n");
 		}
 	}
 	

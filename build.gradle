@@ -17,13 +17,11 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "1.0"
-group= "com.wildex999.tickdynamic" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "tickdynamic"
-
+version = "0.1"
 String fullversion = "1.7.10-10.13.2.1230"
-String patchesSourcePath = "build/libs/"
-String patchesOutputPath = "src/main/resources/patches"
+group= "com.wildex999.tickdynamic" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "tickdynamic-forge" + fullversion
+
 
 minecraft {
     version = fullversion

@@ -637,9 +637,11 @@ public class ASMClassParser {
 		
 		if(value.equals("throws")) {
 			List<String> exceptions = new ArrayList<String>();
-			while(!value.equals("\n"))
+			while(true)
 			{
 				value = nextToken();
+				if(value.equals("\n"))
+					break;
 				exceptions.add(value);
 			}
 			exceptionsArray = exceptions.toArray(new String[exceptions.size()]);
