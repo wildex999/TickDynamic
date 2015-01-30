@@ -143,7 +143,9 @@ public class TickDynamicMod extends DummyModContainer
     	
     	//Generate default config if not set
     	config.getCategory("general");
-    	config.setCategoryComment("general", "Slices are the way you control the time allottment to each world, and within each world, to Entities and TileEntities.\n"
+    	config.setCategoryComment("general", "WEBSITE: http://mods.stjerncraft.com/tickdynamic   <- Head here for the documentation, if you have problems or if you have questions."
+    			+ "\n\n"
+    			+ "Slices are the way you control the time allottment to each world, and within each world, to Entities and TileEntities.\n"
     			+ "Each tick the time for a tick(By default 50ms) will be distributed among all the worlds, according to how many slices they have.\n"
     			+ "If you have 3 worlds, each with 100 slices, then each world will get 100/300 = ~33% of the time.\n"
     			+ "So you can thus give the Overworld a maxSlices of 300, while giving the other two 100 each. This way the Overworld will get 60% of the time.\n"

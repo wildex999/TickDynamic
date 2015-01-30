@@ -85,7 +85,7 @@ public class CommandHandler implements ICommand {
 			sender.addChatMessage(new ChatComponentText("Command not yet implemented! Use the config file and reload command for now."));
 			return;
 		} else if(args[0].equals("help")) {
-			sender.addChatMessage(new ChatComponentText("Help will be added... sooner or later. Is it needed?"));
+			sender.addChatMessage(new ChatComponentText("You can find the documentation over at http://mods.stjerncraft.com/tickdynamic for now."));
 			return;
 		}
 		
