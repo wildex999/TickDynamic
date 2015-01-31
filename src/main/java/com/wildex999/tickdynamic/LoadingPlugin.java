@@ -11,7 +11,7 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.SortingIndex;
 import com.wildex999.patcher.TransformerPatcher;
 
 @SortingIndex(1009) //Run after deobfuscation, and try to run after most other coremods
-@MCVersion("1.7.10")
+@MCVersion("1.8")
 @DependsOn("forge")
 //@TransformerExclusions({ "com.wildex999.transformers.", "com.wildex999.transformers.transformer1" })
 public class LoadingPlugin implements IFMLLoadingPlugin {

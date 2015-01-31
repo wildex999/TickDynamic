@@ -121,7 +121,7 @@
         timedGroup.startTimer();
     !
     @-ALOAD 0
-    GETFIELD net/minecraft/world/World.field_147482_g : Ljava/util/List;
+    GETFIELD net/minecraft/world/World.field_175730_i : Ljava/util/List;
     INVOKEINTERFACE java/util/List.iterator ()Ljava/util/Iterator;
     ASTORE ?iterator]@|
     @+GETSTATIC com/wildex999/tickdynamic/TickDynamicMod.tickDynamic : Lcom/wildex999/tickdynamic/TickDynamicMod;
@@ -129,7 +129,7 @@
     INVOKEVIRTUAL com/wildex999/tickdynamic/TickDynamicMod.getWorldTileEntities (Lnet/minecraft/world/World;)Lcom/wildex999/tickdynamic/timemanager/TimedTileEntities;
     ASTORE 20
     ALOAD 0
-    GETFIELD net/minecraft/world/World.field_147482_g : Ljava/util/List;
+    GETFIELD net/minecraft/world/World.field_175730_i : Ljava/util/List;
     ALOAD 20
     ALOAD 0
     INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedTileEntities.startUpdateObjects (Lnet/minecraft/world/World;)I
