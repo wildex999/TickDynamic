@@ -191,6 +191,9 @@ public class TickDynamicMod extends DummyModContainer
     		
     		for(ITimed timed : timedObjects.values())
     			timed.loadConfig(false);
+    		
+    		if(root != null)
+    			root.setTimeMax(defaultTickTime * TimeManager.timeMilisecond);
     	}
     	
     	//Save any new defaults

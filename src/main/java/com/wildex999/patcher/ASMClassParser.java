@@ -119,6 +119,11 @@ public class ASMClassParser {
 				value = nextToken();
 				if(value.equals("signature"))
 					signature = nextToken();
+				else if(value.equals("compiled"))
+				{
+					currentToken++; //Skip the 'from:'
+					cl.visitSource(nextToken(), null);
+				}
 				else
 					currentToken--;
 				skipLine();
@@ -354,8 +359,8 @@ public class ASMClassParser {
 				access += Opcodes.ACC_SYNTHETIC;*/
 			/*else if(current.equals("annotation"))
 				access += Opcodes.ACC_ANNOTATION;*/
-			/*else if(current.equals("enum"))
-				access += Opcodes.ACC_ENUM;*/
+			else if(current.equals("enum"))
+				access += Opcodes.ACC_ENUM;
 			else if(current.equals("mandated"))
 				access += Opcodes.ACC_MANDATED;
 			else
@@ -678,6 +683,7 @@ public class ASMClassParser {
 
 		//Parse method instructions
 		boolean lineData = false;
+		String insnSignature = null;
 		while(true) {
 			value = nextToken();
 			
@@ -686,11 +692,27 @@ public class ASMClassParser {
 				currentToken--; //Allow main loop to detect the class end
 				break;
 			}
+			else if(value.startsWith("//"))
+			{
+
+				//Check for pre-method generics signature
+				value = nextToken();
+				if(value.equals("signature"))
+				{
+					insnSignature = nextToken();
+					System.out.println("Got INSN signature: " + insnSignature);
+				}
+				else
+					currentToken--;
+				skipLine();
+				continue;
+			}
 			if(!value.equals("\n"))
 			{
 				lineData = true;
 				currentToken--;
-				parseInstruction(method, labels);
+				parseInstruction(method, labels, insnSignature);
+				insnSignature = null; //Reset signature after known instruction
 			}
 			else
 			{
@@ -705,7 +727,7 @@ public class ASMClassParser {
 	}
 	
 	//Parse a instruction, consisting for a single line with tokens
-	protected void parseInstruction(MethodVisitor method, Map<String, Label> labels) throws Exception {
+	protected void parseInstruction(MethodVisitor method, Map<String, Label> labels, String signature) throws Exception {
 		String value = nextToken();
 		//System.out.println("Parsing instruction: " + value);
 		
@@ -883,7 +905,10 @@ public class ASMClassParser {
 			Label end = getLabel(labels, nextToken());
 			int index = Integer.parseInt(nextToken());
 			
-			method.visitLocalVariable(name, desc, null, start, end, index);
+			if(signature != null)
+				System.out.println("LOCAL with signature: " + name + " sig: " + signature);
+			
+			method.visitLocalVariable(name, desc, signature, start, end, index);
 		}
 		
 		else if(value.equals("LINENUMBER")) {
@@ -948,6 +973,8 @@ public class ASMClassParser {
 			currentToken++;
 			int maxLocals = Integer.parseInt(nextToken());
 			method.visitMaxs(maxStack, maxLocals);
+		} else {
+			throw new RuntimeException("Parser got unknown method instruction: " + value);
 		}
 		//For now we asume(As has been observed) that MAXSTACK and MAXLOCALS always are together in the same order
 		/*else if(value.equals("MAXLOCALS")) {
@@ -960,7 +987,7 @@ public class ASMClassParser {
 		List<Object> objects = new ArrayList<Object>();
 		
 		String value = nextToken();
-		if(value.length() == 2) //[]
+		if(value.equals("[]")) //Empty
 			return objects.toArray();
 
 		if(value.endsWith("]"))
@@ -1008,7 +1035,7 @@ public class ASMClassParser {
 		}
 		
 		//Label
-		if(StringUtils.isNumeric(typeStr))
+		if(typeStr.startsWith("L") && StringUtils.isNumeric(typeStr.substring(1)))
 			return getLabel(labels, typeStr);
 		
 		//Class name

@@ -17,6 +17,8 @@ import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.util.ASMifier;
+import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import net.minecraft.init.Blocks;
@@ -50,7 +52,7 @@ public class TransformerPatcher implements IClassTransformer {
 				ClassNode cn = new ClassNode();
 				stringWriter = new StringWriter();
 				TraceClassVisitor printer = new TraceClassVisitor(null, new ExtraTextifier(), new PrintWriter(stringWriter));
-				TraceClassVisitor printer2 = new TraceClassVisitor(null, new ExtraTextifier(), new PrintWriter(out2));
+				TraceClassVisitor printer2 = new TraceClassVisitor(null, new Textifier(), new PrintWriter(out2));
 				ClassReader cr;
 				cr = new ClassReader(basicClass);
 				cr.accept(printer, ClassReader.EXPAND_FRAMES);
@@ -80,7 +82,7 @@ public class TransformerPatcher implements IClassTransformer {
 				
 				cr = new ClassReader(basicClass);
 				File out = new File("output_source.log");
-				printer = new TraceClassVisitor(null, new ExtraTextifier(), new PrintWriter(out));
+				printer = new TraceClassVisitor(null, new Textifier(), new PrintWriter(out));
 				cr.accept(printer, ClassReader.EXPAND_FRAMES);
 				
 			} catch (Exception e) {

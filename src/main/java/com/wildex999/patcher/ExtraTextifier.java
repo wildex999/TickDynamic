@@ -1,9 +1,12 @@
 package com.wildex999.patcher;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
+import org.objectweb.asm.util.TraceSignatureVisitor;
 
 //Extends the default ASM Textifier to provide some more info we use when parsing the classes after patching
 //For example: Whether a constant number is a float or double, The type of an Annotation value etc.
@@ -34,6 +37,35 @@ public class ExtraTextifier extends Textifier {
             buf.append(cst);
         }
         buf.append('\n');
+        text.add(buf.toString());
+    }
+    
+    //We want the signature in FRONT of the variable
+    @Override
+    public void visitLocalVariable(final String name, final String desc,
+            final String signature, final Label start, final Label end,
+            final int index) {
+        buf.setLength(0);
+        
+        if (signature != null) {
+            buf.append(tab2);
+            appendDescriptor(FIELD_SIGNATURE, signature);
+
+            TraceSignatureVisitor sv = new TraceSignatureVisitor(0);
+            SignatureReader r = new SignatureReader(signature);
+            r.acceptType(sv);
+            buf.append(tab2).append("// declaration: ")
+                    .append(sv.getDeclaration()).append('\n');
+        }
+        
+        buf.append(tab2).append("LOCALVARIABLE ").append(name).append(' ');
+        appendDescriptor(FIELD_DESCRIPTOR, desc);
+        buf.append(' ');
+        appendLabel(start);
+        buf.append(' ');
+        appendLabel(end);
+        buf.append(' ').append(index).append('\n');
+
         text.add(buf.toString());
     }
     

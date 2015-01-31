@@ -1,0 +1,158 @@
+    "In method: public void updateEntities()
+    @Opublic func_72939_s()V@|
+    "Set limit before next method
+    @Lpublic func_147448_a(Ljava/util/Collection;)V@|
+    
+    "---------PATCH ENTITIES LOOP-----------"
+    ! Below:
+        this.theProfiler.endStartSection("regular");
+    !
+    @SALOAD 0
+    GETFIELD net/minecraft/world/World.field_72984_F : Lnet/minecraft/profiler/Profiler;
+    LDC "regular"
+    INVOKEVIRTUAL net/minecraft/profiler/Profiler.func_76318_c (Ljava/lang/String;)V@|
+    
+    ! Insert:
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").endTimer();
+        com.wildex999.tickdynamic.timemanager.TimedEntities timedEntityGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldEntities(this);
+        timedEntityGroup.startTimer();
+    !
+    @+
+    GETSTATIC com/wildex999/tickdynamic/TickDynamicMod.tickDynamic : Lcom/wildex999/tickdynamic/TickDynamicMod;
+    LDC "other"
+    INVOKEVIRTUAL com/wildex999/tickdynamic/TickDynamicMod.getGroup (Ljava/lang/String;)Lcom/wildex999/tickdynamic/timemanager/TimedGroup;
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedGroup.endTimer ()V
+    GETSTATIC com/wildex999/tickdynamic/TickDynamicMod.tickDynamic : Lcom/wildex999/tickdynamic/TickDynamicMod;
+    ALOAD 0
+    INVOKEVIRTUAL com/wildex999/tickdynamic/TickDynamicMod.getWorldEntities (Lnet/minecraft/world/World;)Lcom/wildex999/tickdynamic/timemanager/TimedEntities;
+    ASTORE 21
+    ALOAD 21
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.startTimer ()V@E@|
+    
+    "Remove: i = 0
+    @SL*
+    LINENUMBER * L*@|
+    @-
+    ALOAD 0
+    ICONST_0
+    PUTFIELD ?tickPosition] : I
+   @|
+    
+    "Insert: i = timedEntityGroup.startUpdateObjects(this)
+    @+
+    ALOAD 0
+    ALOAD 21
+    ALOAD 0
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.startUpdateObjects (Lnet/minecraft/world/World;)I
+    PUTFIELD =tickPosition] : I
+   @|
+    
+    "Before: i < this.loadedEntityList.size()
+    @EL*
+   FRAME FULL *
+    ALOAD 0
+    GETFIELD =tickPosition] : I
+    ALOAD 0
+    GETFIELD net/minecraft/world/World.field_72996_f : Ljava/util/List;
+    INVOKEINTERFACE java/util/List.size ()I
+    IF_ICMPGE L*@|
+    
+     
+    @SFRAME FULL *
+    @|
+    @+ALOAD 0
+    ALOAD 21
+    ALOAD 0
+    GETFIELD =tickPosition] : I
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.updateObjects (I)I
+    PUTFIELD =tickPosition] : I
+    @|
+    @EALOAD 0
+    DUP
+    GETFIELD =tickPosition] : I
+    ICONST_1
+    IADD
+    PUTFIELD =tickPosition] : I
+    GOTO L*@|
+    
+   @SLINENUMBER * L*
+    @|
+    @+ALOAD 21
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.endTimer ()V
+    @|
+    @EALOAD 0
+    GETFIELD net/minecraft/world/World.field_72984_F : Lnet/minecraft/profiler/Profiler;
+    LDC "blockEntities"
+    INVOKEVIRTUAL net/minecraft/profiler/Profiler.func_76318_c (Ljava/lang/String;)V@|
+    
+    
+    "---------PATCH TILE ENTITIES LOOP-----------"
+    
+   @SFRAME FULL *
+    @|
+    @-ALOAD 0
+    GETFIELD net/minecraft/world/World.field_147482_g : Ljava/util/List;
+    INVOKEINTERFACE java/util/List.iterator ()Ljava/util/Iterator;
+    ASTORE ?iterator]@|
+    @+GETSTATIC com/wildex999/tickdynamic/TickDynamicMod.tickDynamic : Lcom/wildex999/tickdynamic/TickDynamicMod;
+    ALOAD 0
+    INVOKEVIRTUAL com/wildex999/tickdynamic/TickDynamicMod.getWorldTileEntities (Lnet/minecraft/world/World;)Lcom/wildex999/tickdynamic/timemanager/TimedTileEntities;
+    ASTORE 20
+    ALOAD 0
+    GETFIELD net/minecraft/world/World.field_147482_g : Ljava/util/List;
+    ALOAD 20
+    ALOAD 0
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedTileEntities.startUpdateObjects (Lnet/minecraft/world/World;)I
+    INVOKEINTERFACE java/util/List.listIterator (I)Ljava/util/ListIterator;
+    ASTORE =iterator]
+    ALOAD 20
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedTileEntities.startTimer ()V@E@|
+    
+    "----------------------"
+    
+    
+    @SL*
+    LINENUMBER * L*
+   FRAME FULL *
+    @|
+    
+    "Insert: iterator = timedGroup.updateObjects(iterator);
+    @+ALOAD 20
+    ALOAD =iterator]
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedTileEntities.updateObjects (Ljava/util/Iterator;)Ljava/util/Iterator;
+    ASTORE =iterator]
+    @|
+    
+    "Before iterator.hasNext()
+    @EALOAD =iterator]
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z
+    IFEQ *
+   L*
+    LINENUMBER * L*
+    ALOAD =iterator]
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object;
+    CHECKCAST net/minecraft/tileentity/TileEntity
+    ASTORE *@|
+    
+    "----------------------"
+    
+    !Insert: 
+        timedGroup.endTimer();
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").startTimer();
+    !
+    @S
+    @+ALOAD 20
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedTileEntities.endTimer ()V
+    GETSTATIC com/wildex999/tickdynamic/TickDynamicMod.tickDynamic : Lcom/wildex999/tickdynamic/TickDynamicMod;
+    LDC "other"
+    INVOKEVIRTUAL com/wildex999/tickdynamic/TickDynamicMod.getGroup (Ljava/lang/String;)Lcom/wildex999/tickdynamic/timemanager/TimedGroup;
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedGroup.startTimer ()V
+    @|
+    
+    "Before: this.timings.tileEntityTick.stopTiming();
+    @EALOAD 0
+    GETFIELD net/minecraft/world/World.timings : Lorg/bukkit/craftbukkit/v1_7_R4/SpigotTimings$WorldTimingsHandler;
+    GETFIELD org/bukkit/craftbukkit/v1_7_R4/SpigotTimings$WorldTimingsHandler.tileEntityTick : Lorg/spigotmc/CustomTimingsHandler;
+    INVOKEVIRTUAL org/spigotmc/CustomTimingsHandler.stopTiming ()V@|
+    
+    
