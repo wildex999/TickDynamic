@@ -698,10 +698,7 @@ public class ASMClassParser {
 				//Check for pre-method generics signature
 				value = nextToken();
 				if(value.equals("signature"))
-				{
 					insnSignature = nextToken();
-					System.out.println("Got INSN signature: " + insnSignature);
-				}
 				else
 					currentToken--;
 				skipLine();
@@ -904,9 +901,6 @@ public class ASMClassParser {
 			Label start = getLabel(labels, nextToken());
 			Label end = getLabel(labels, nextToken());
 			int index = Integer.parseInt(nextToken());
-			
-			if(signature != null)
-				System.out.println("LOCAL with signature: " + name + " sig: " + signature);
 			
 			method.visitLocalVariable(name, desc, signature, start, end, index);
 		}
