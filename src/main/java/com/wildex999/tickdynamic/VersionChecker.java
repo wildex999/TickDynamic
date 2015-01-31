@@ -39,7 +39,7 @@ public class VersionChecker implements Runnable {
 		String url = "http://mods.stjerncraft.com:8080";
 		String query = "v=error";
 		try {
-			query = String.format("mv=%s&v=%s", URLEncoder.encode("cauldron-1.7.10-1.1236.05.210", encoding), URLEncoder.encode(TickDynamicMod.VERSION, encoding));
+			query = String.format("mv=%s&v=%s", URLEncoder.encode("1.7.10-10.13.2.1230", encoding), URLEncoder.encode(TickDynamicMod.VERSION, encoding));
 			URLConnection connection = new URL(url + "/?" + query).openConnection();
 			connection.setRequestProperty("Accept-Charset", encoding);
 			connection.setRequestProperty("Host", "mods.stjerncraft.com");
