@@ -140,8 +140,6 @@ public abstract class World implements IBlockAccess
     public boolean restoringBlockSnapshots = false;
     public boolean captureBlockSnapshots = false;
     public ArrayList<net.minecraftforge.common.util.BlockSnapshot> capturedBlockSnapshots = new ArrayList<net.minecraftforge.common.util.BlockSnapshot>();
-
-    private int tickPosition;
     
     public BiomeGenBase getBiomeGenForCoords(final int p_72807_1_, final int p_72807_2_)
     {

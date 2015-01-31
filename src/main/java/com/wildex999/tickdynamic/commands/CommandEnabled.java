@@ -7,6 +7,7 @@ import com.wildex999.tickdynamic.TickDynamicMod;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -26,7 +27,7 @@ public class CommandEnabled implements ICommand{
 	}
 	
 	@Override
-	public String getCommandName() {
+	public String getName() {
 		return "tickdynamic enabled";
 	}
 
@@ -36,12 +37,12 @@ public class CommandEnabled implements ICommand{
 	}
 
 	@Override
-	public List getCommandAliases() {
+	public List getAliases() {
 		return null;
 	}
 
 	@Override
-	public void processCommand(ICommandSender sender, String[] args) {
+	public void execute(ICommandSender sender, String[] args) {
 		if(args.length == 1)
 		{
 			if(mod.enabled)
@@ -79,12 +80,12 @@ public class CommandEnabled implements ICommand{
 	}
 
 	@Override
-	public boolean canCommandSenderUseCommand(ICommandSender sender) {
-		return sender.canCommandSenderUseCommand(1, getCommandName());
+	public boolean canCommandSenderUse(ICommandSender sender) {
+		return sender.canUseCommand(1, getName());
 	}
-
+	
 	@Override
-	public List addTabCompletionOptions(ICommandSender sender, String[] args) {
+	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
 		if(args[args.length-1].startsWith("y"))
 			return listYes;
 		else if(args[args.length-1].startsWith("n"))

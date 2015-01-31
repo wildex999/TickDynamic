@@ -9,8 +9,10 @@ import java.util.Map;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
 
+import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatStyle;
 import net.minecraft.util.EnumChatFormatting;
@@ -54,7 +56,7 @@ public class CommandHandler implements ICommand {
 	}
 
 	@Override
-	public String getCommandName() {
+	public String getName() {
 		return "tickdynamic";
 	}
 
@@ -64,12 +66,12 @@ public class CommandHandler implements ICommand {
 	}
 
 	@Override
-	public List getCommandAliases() {
+	public List getAliases() {
 		return aliases;
 	}
 
 	@Override
-	public void processCommand(ICommandSender sender, String[] args) {
+	public void execute(ICommandSender sender, String[] args) throws CommandException {
 		if(args.length == 0)
 		{
 			sender.addChatMessage(new ChatComponentText("Usage: " + getCommandUsage(sender)));
@@ -96,17 +98,17 @@ public class CommandHandler implements ICommand {
 			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "No handler for the command " + EnumChatFormatting.ITALIC + args[0]));
 			return;
 		}
-		subHandler.processCommand(sender, args);
+		subHandler.execute(sender, args);
 	}
 
 
 	@Override
-	public boolean canCommandSenderUseCommand(ICommandSender sender) {
-		return sender.canCommandSenderUseCommand(1, getCommandName());
+	public boolean canCommandSenderUse(ICommandSender sender) {
+		return sender.canUseCommand(1, getName());
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender sender, String[] args) {
+	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
 		if(args.length == 1)
 		{
 			List listOut = new LinkedList();
@@ -126,7 +128,7 @@ public class CommandHandler implements ICommand {
 			ICommand subHandler = subCommandHandlers.get(args[0]);
 			if(subHandler == null)
 				return null;
-			return subHandler.addTabCompletionOptions(sender, args);
+			return subHandler.addTabCompletionOptions(sender, args, pos);
 		}
 	}
 

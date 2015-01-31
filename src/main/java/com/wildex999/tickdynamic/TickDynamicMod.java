@@ -46,21 +46,18 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Configuration;
-import cpw.mods.fml.common.DummyModContainer;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.LoadController;
-import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.ModMetadata;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.event.FMLServerStartingEvent;
-import cpw.mods.fml.common.event.FMLServerStoppingEvent;
-import cpw.mods.fml.common.eventhandler.EventPriority;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Phase;
-import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
-import cpw.mods.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.common.DummyModContainer;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.LoadController;
+import net.minecraftforge.fml.common.ModMetadata;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
+import net.minecraftforge.fml.common.gameevent.TickEvent.ServerTickEvent;
 
 //Written by: Wildex999 ( wildex999@gmail.com )
 
@@ -344,17 +341,17 @@ public class TickDynamicMod extends DummyModContainer
     	String remote = "";
     	if(world.isRemote)
     		remote = "r";
-    	String managerName = new StringBuilder().append(remote).append("tm_DIM").append(world.provider.dimensionId).toString();
+    	String managerName = new StringBuilder().append(remote).append("tm_DIM").append(world.provider.getDimensionId()).toString();
     	TimeManager worldManager = getManager(managerName);
     	
     	if(worldManager == null)
     	{
-    		worldManager = new TimeManager(this, world, managerName, "worlds.dim" + world.provider.dimensionId);
+    		worldManager = new TimeManager(this, world, managerName, "worlds.dim" + world.provider.getDimensionId());
     		worldManager.init();
     		if(world.isRemote)
     			worldManager.setSliceMax(0);
     		
-    		config.setCategoryComment("worlds.dim" + world.provider.dimensionId, world.provider.getDimensionName());
+    		config.setCategoryComment("worlds.dim" + world.provider.getDimensionId(), world.provider.getDimensionName());
     		
     		//TODO: Allow for worlds to be child of other worlds
     		root.addChild(worldManager);
@@ -369,19 +366,19 @@ public class TickDynamicMod extends DummyModContainer
     	String remote = "";
     	if(world.isRemote)
     		remote = "r";
-    	String groupName = new StringBuilder().append(remote).append("DIM").append(world.provider.dimensionId).append("_").append(name).toString();
+    	String groupName = new StringBuilder().append(remote).append("DIM").append(world.provider.getDimensionId()).append("_").append(name).toString();
     	TimedGroup group = getGroup(groupName);
     	
     	if(group == null)
     	{
     		if(type == TimedGroup.GroupType.TileEntity)
     		{
-    			group = new TimedTileEntities(this, world, groupName, "worlds.dim" + world.provider.dimensionId + ".tileentity");
+    			group = new TimedTileEntities(this, world, groupName, "worlds.dim" + world.provider.getDimensionId() + ".tileentity");
     			group.init();
     		}
     		else if(type == TimedGroup.GroupType.Entity)
     		{
-    			group = new TimedEntities(this, world, groupName, "worlds.dim" + world.provider.dimensionId + ".entity");
+    			group = new TimedEntities(this, world, groupName, "worlds.dim" + world.provider.getDimensionId() + ".entity");
     			group.init();
     		}
     		
