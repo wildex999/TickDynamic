@@ -33,60 +33,49 @@
     @SL*
     LINENUMBER * L*@|
     @-
+    ALOAD 0
     ICONST_0
-    ISTORE ?index]
+    PUTFIELD ?tickPosition] : I
    @|
     
     "Insert: i = timedEntityGroup.startUpdateObjects(this)
     @+
+    ALOAD 0
     ALOAD 21
     ALOAD 0
     INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.startUpdateObjects (Lnet/minecraft/world/World;)I
-    ISTORE =index]
+    PUTFIELD =tickPosition] : I
    @|
     
     "Before: i < this.loadedEntityList.size()
     @EL*
    FRAME FULL *
-    ILOAD =index]
+    ALOAD 0
+    GETFIELD =tickPosition] : I
     ALOAD 0
     GETFIELD net/minecraft/world/World.field_72996_f : Ljava/util/List;
     INVOKEINTERFACE java/util/List.size ()I
     IF_ICMPGE L*@|
     
-    
+     
     @SFRAME FULL *
     @|
-    
-    "Insert: i = timedEntityGroup.updateObjects(i);
-    @+ALOAD 21
-    ILOAD =index]
-    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.updateObjects (I)I
-    ISTORE =index]
-    @|
-    
-    !Before: 
-            this.theProfiler.endSection();
-        }
-        
-        this.theProfiler.endStartSection("blockEntities");
-    !
-    @EALOAD 0
-    GETFIELD net/minecraft/world/World.field_72984_F : Lnet/minecraft/profiler/Profiler;
-    INVOKEVIRTUAL net/minecraft/profiler/Profiler.func_76319_b ()V
-   L*
-    LINENUMBER * L*
-   FRAME FULL *
-    IINC =index] 1
-    GOTO L*
-   L*
-    LINENUMBER * L*
-   FRAME FULL *
+    @+ALOAD 0
+    ALOAD 21
     ALOAD 0
-    GETFIELD net/minecraft/world/World.field_72984_F : Lnet/minecraft/profiler/Profiler;
-    LDC "blockEntities"@|
+    GETFIELD =tickPosition] : I
+    INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.updateObjects (I)I
+    PUTFIELD =tickPosition] : I
+    @|
+    @EALOAD 0
+    DUP
+    GETFIELD =tickPosition] : I
+    ICONST_1
+    IADD
+    PUTFIELD =tickPosition] : I
+    GOTO L*@|
     
-   @SFRAME FULL [net/minecraft/world/World I] []
+   @SLINENUMBER * L*
     @|
     @+ALOAD 21
     INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedEntities.endTimer ()V
@@ -99,27 +88,8 @@
     
     "---------PATCH TILE ENTITIES LOOP-----------"
     
-    ! Below:
-        this.theProfiler.endStartSection("blockEntities");
-        this.field_147481_N = true;
-    !
-    @SALOAD 0
-    GETFIELD net/minecraft/world/World.field_72984_F : Lnet/minecraft/profiler/Profiler;
-    LDC "blockEntities"
-    INVOKEVIRTUAL net/minecraft/profiler/Profiler.func_76318_c (Ljava/lang/String;)V
-   L*
-    LINENUMBER * L*
-    ALOAD 0
-    ICONST_1
-    PUTFIELD net/minecraft/world/World.field_147481_N : Z
-   L*
-    LINENUMBER * L*
+   @SFRAME FULL *
     @|
-    !
-        com.wildex999.tickdynamic.timemanager.TimedTileEntities timedGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldTileEntities(this);
-        Iterator iterator = this.loadedTileEntityList.listIterator(timedGroup.startUpdateObjects(this));
-        timedGroup.startTimer();
-    !
     @-ALOAD 0
     GETFIELD net/minecraft/world/World.field_147482_g : Ljava/util/List;
     INVOKEINTERFACE java/util/List.iterator ()Ljava/util/Iterator;
@@ -167,7 +137,7 @@
     "----------------------"
     
     !Insert: 
-        timedGroup.endTimer(loadedTileEntityList.size());
+        timedGroup.endTimer();
         com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").startTimer();
     !
     @S
@@ -179,10 +149,10 @@
     INVOKEVIRTUAL com/wildex999/tickdynamic/timemanager/TimedGroup.startTimer ()V
     @|
     
-    "Before: if (!this.field_147483_b.isEmpty())
+    "Before: this.timings.tileEntityTick.stopTiming();
     @EALOAD 0
-    GETFIELD net/minecraft/world/World.field_147483_b : Ljava/util/List;
-    INVOKEINTERFACE java/util/List.isEmpty ()Z
-    IFNE L*@|
+    GETFIELD net/minecraft/world/World.timings : Lorg/bukkit/craftbukkit/v1_7_R4/SpigotTimings$WorldTimingsHandler;
+    GETFIELD org/bukkit/craftbukkit/v1_7_R4/SpigotTimings$WorldTimingsHandler.tileEntityTick : Lorg/spigotmc/CustomTimingsHandler;
+    INVOKEVIRTUAL org/spigotmc/CustomTimingsHandler.stopTiming ()V@|
     
     
