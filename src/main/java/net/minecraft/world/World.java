@@ -1885,7 +1885,7 @@ public abstract class World implements IBlockAccess
         com.wildex999.tickdynamic.timemanager.TimedEntities timedEntityGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldEntities(this);
         timedEntityGroup.startTimer();
 
-        for (tickPosition = timedEntityGroup.startUpdateObjects(this); tickPosition < this.loadedEntityList.size(); ++tickPosition)
+        for (i = timedEntityGroup.startUpdateObjects(this); i < this.loadedEntityList.size(); ++i)
         {
             entity = (Entity)this.loadedEntityList.get(i);
 
@@ -1943,7 +1943,7 @@ public abstract class World implements IBlockAccess
                 this.onEntityRemoved(entity);
             }
 
-            tickPosition = timedEntityGroup.updateObjects(tickPosition);
+            i = timedEntityGroup.updateObjects(i);
             this.theProfiler.endSection();
         }
         
