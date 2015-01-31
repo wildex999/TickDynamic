@@ -5,3 +5,5 @@ bin/
 forgeSrc-1.7.10-10.13.2.1230-sources/
 .metadata/
 forgeBase/
+.classpath
+.settings/
