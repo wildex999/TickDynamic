@@ -279,6 +279,18 @@ public class CommandList implements ICommand {
 			dataList.add(newData);
 		}
 		
+		//Add External
+		TimedGroup external = mod.getGroup("external");
+		if(other != null)
+		{
+			newData = new ListData();
+			newData.worldName = "(External)";
+			newData.tileData = "N/A";
+			newData.entityData = "N/A";
+			newData.worldData = decimalFormat.format(external.getTimeUsedAverage()/(double)external.timeMilisecond) + "ms";
+			dataList.add(newData);
+		}
+		
 		return dataList;
 	}
 	

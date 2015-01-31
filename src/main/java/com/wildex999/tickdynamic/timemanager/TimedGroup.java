@@ -121,6 +121,11 @@ public class TimedGroup implements ITimed {
 		return prevTimeUsed;
 	}
 	
+	//Manually set the time used
+	public void setTimeUsed(long newTimeUsed) {
+		timeUsed = newTimeUsed;
+	}
+	
 	public void setMinimumObjects(int minimum) {
 		minimumObjects = minimum;
 	}

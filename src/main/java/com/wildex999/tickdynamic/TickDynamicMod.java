@@ -73,7 +73,7 @@ import cpw.mods.fml.common.network.NetworkRegistry;
 public class TickDynamicMod extends DummyModContainer
 {
     public static final String MODID = "tickDynamic";
-    public static final String VERSION = "0.1.2";
+    public static final String VERSION = "0.1.3";
     public static boolean debug = false;
     public static TickDynamicMod tickDynamic;
     
@@ -212,9 +212,18 @@ public class TickDynamicMod extends DummyModContainer
     	root = new TimeManager(this, null, "root", null);
     	root.init();
     	root.setTimeMax(defaultTickTime * TimeManager.timeMilisecond);
+    	
+    	//Other group accounts the time used in a tick, but not for Entities or TileEntities
     	TimedGroup otherTimed = new TimedGroup(this, null, "other", null);
     	otherTimed.setSliceMax(0); //Make it get unlimited time
     	root.addChild(otherTimed);
+    	
+    	//External group accounts the time used between ticks due to external load
+    	TimedGroup externalTimed = new TimedGroup(this, null, "external", null);
+    	externalTimed.setSliceMax(0);
+    	root.addChild(externalTimed);
+    	
+    	
     }
     
     
@@ -255,6 +264,26 @@ public class TickDynamicMod extends DummyModContainer
     					System.out.println("TickDynamic version check: Error while checking latest version!");
     			}
     		}
+    		
+    		TimedGroup externalGroup = getGroup("external");
+    		externalGroup.endTimer();
+    		
+    		//Set the correct externalGroup time
+    		//TODO: But what if this time is allready accounted for? I.e, what if root time is already over defaultTickTime?
+    		long overTime = externalGroup.getTimeUsed() - (defaultTickTime*externalGroup.timeMilisecond); //overTime = time used above given tick time
+    		long overTimeTick = (defaultTickTime*externalGroup.timeMilisecond) - (root.getTimeUsed() - externalGroup.getTimeUsed());
+    		if(overTimeTick < 0)
+    			overTime += overTimeTick;
+    		/*System.out.println("TickTime: " + ((root.getTimeUsed()-externalGroup.getTimeUsed())/(double)externalGroup.timeMilisecond) + 
+    				" Full Tick time: " + (externalGroup.getTimeUsed()/(double)externalGroup.timeMilisecond) +
+    				" External time used: " + (overTime/(double)externalGroup.timeMilisecond)+"ms");*/
+    		if(overTime < 0)
+    			externalGroup.setTimeUsed(0);
+    		else
+    			externalGroup.setTimeUsed(overTime);
+    		
+    		externalGroup.startTimer();
+    		
     		
 	        //Clear any values from the previous tick for all worlds.
     		root.newTick(true);
