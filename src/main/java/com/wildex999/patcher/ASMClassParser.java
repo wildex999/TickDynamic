@@ -27,7 +27,12 @@ import scala.collection.mutable.HashTable;
 
 public class ASMClassParser {
 	
-	protected List<String> tokens;
+	public class Token {
+		public String str;
+		public int line;
+	}
+	
+	protected List<Token> tokens;
 	protected int currentToken;
 	public int classVersion = 0;
 	
@@ -37,13 +42,14 @@ public class ASMClassParser {
 		cl = new ClassWriter(0);
 
 		//Generate a list of tokens
-		tokens = new ArrayList<String>();
+		tokens = new ArrayList<Token>();
 		
 		int tokenStart = 0;
 		int curPos = 0;
 		boolean inQuote = false;
 		boolean escaped = false;
 		boolean inToken = false;
+		int currentLine = 0;
 		while(curPos < classData.length())
 		{
 			char curChar = classData.charAt(curPos);
@@ -65,13 +71,20 @@ public class ASMClassParser {
 			{
 				if(inToken)
 				{
-					tokens.add(classData.substring(tokenStart, curPos-1));
+					Token newToken = new Token();
+					newToken.str = classData.substring(tokenStart, curPos-1);
+					newToken.line = currentLine;
+					tokens.add(newToken);
 					//System.out.println("["+tokens.get(tokens.size()-1)+"]");
 					inToken = false;
 				}
 				//We want to tokenize newline as it might be useful
 				if(curChar == '\n') {
-					tokens.add("\n"); 
+					Token newToken = new Token();
+					newToken.str = "\n";
+					newToken.line = currentLine;
+					tokens.add(newToken);
+					currentLine++;
 					//System.out.println("["+tokens.get(tokens.size()-1)+"]");
 				}
 				
@@ -91,7 +104,12 @@ public class ASMClassParser {
 		}
 		//Write any token that reached until the end
 		if(inToken)
-			tokens.add(classData.substring(tokenStart));
+		{
+			Token newToken = new Token();
+			newToken.str = classData.substring(tokenStart);
+			newToken.line = currentLine;
+			tokens.add(newToken);
+		}
 		currentToken = -1; //first nextToken will get the first token
 		System.out.println("Tokens: " + tokens.size());
 		
@@ -106,7 +124,7 @@ public class ASMClassParser {
 		{
 			value = nextToken();
 			if(value == null)
-				throw new Exception("Reached end of class data without complete parse, Patch might be corrupt!");
+				throw new Exception(getCurrentTokenLine() + ": Reached end of class data without complete parse, Patch might be corrupt!");
 			
 			//Skip empty lines
 			if(value.equals("\n"))
@@ -180,21 +198,26 @@ public class ASMClassParser {
 	protected String nextToken() {
 		if(currentToken >= tokens.size()-1)
 			return null;
-		return tokens.get(++currentToken);
+		return tokens.get(++currentToken).str;
 	}
 	
 	protected String getCurrentToken() {
 		if(currentToken < 0 || currentToken >= tokens.size())
 			return null;
-		return tokens.get(currentToken);
+		return tokens.get(currentToken).str;
 	}
 	
 	protected String previousToken() {
 		if(currentToken <= 0 || currentToken >= tokens.size()+1)
 			return null;
-		return tokens.get(--currentToken);
+		return tokens.get(--currentToken).str;
 	}
 	
+	protected int getCurrentTokenLine() {
+		if(currentToken < 0 || currentToken >= tokens.size())
+			return -1;
+		return tokens.get(currentToken).line;
+	}
 	//Skip all tokes on this line(Go to next newline token)
 	protected void skipLine() {
 		String value;
@@ -318,6 +341,10 @@ public class ASMClassParser {
 	protected int parseAccessFlags() throws Exception {
 		String current;
 		int access = 0;
+		
+		//They share value(Mutually exclusive, one is for method, one is for field)
+		boolean gotTransient = false;
+		boolean gotVarargs = false;
 		while(true)
 		{
 			current = nextToken();
@@ -343,10 +370,22 @@ public class ASMClassParser {
 				access += Opcodes.ACC_VOLATILE;
 			/*else if(current.equals("bridge"))
 				access += Opcodes.ACC_BRIDGE;*/
-			/*else if(current.equals("varargs"))
-				access += Opcodes.ACC_VARARGS;*/
+			else if(current.equals("varargs"))
+			{
+				if(!gotTransient)
+				{
+					access += Opcodes.ACC_VARARGS;
+					gotVarargs = true;
+				}
+			}
 			else if(current.equals("transient"))
-				access += Opcodes.ACC_TRANSIENT;
+			{
+				if(!gotVarargs)
+				{
+					access += Opcodes.ACC_TRANSIENT;
+					gotTransient = true;
+				}
+			}
 			else if(current.equals("native"))
 				access += Opcodes.ACC_NATIVE;
 			else if(current.equals("interface"))
@@ -405,7 +444,7 @@ public class ASMClassParser {
 		//System.out.println("Field: " + Integer.toHexString(access).toUpperCase() + " | " + name + " | " + desc + " | " + fieldValue);
 		
 		if(!nextToken().equals("\n"))
-			throw new Exception("Error: Expected newline while parsing field: " + name + "! Got: " + getCurrentToken());
+			throw new Exception(getCurrentTokenLine() + ": Error: Expected newline while parsing field: " + name + "! Got: " + getCurrentToken());
 		
 		//Read any annotations for the field
 		while(true)
@@ -446,7 +485,7 @@ public class ASMClassParser {
 		
 		//TODO: Handle escaped quotes properly
 		if(token.contains("\\\""))
-			throw new Exception("Parser currently does not handle escaped quotes in annotations! Bug me about this -_-(Unless you are on an old version");
+			throw new Exception(getCurrentTokenLine() + ": Parser currently does not handle escaped quotes in annotations! Bug me about this -_-(Unless you are on an old version");
 		
 		int offset = 1; //Start after the (
 		int index;
@@ -474,7 +513,7 @@ public class ASMClassParser {
 				offset = index+1;
 			}
 			else if(tokenChar == '{') //Array value
-				throw new Exception("Parser currently does not handle arrays in annotations!");
+				throw new Exception(getCurrentTokenLine() + ": Parser currently does not handle arrays in annotations!");
 			else if(tokenChar == 'L') //Enum or Object Type
 			{
 				//Start with getting the Type name
@@ -529,7 +568,7 @@ public class ASMClassParser {
 			else if(tokenChar == ')') //Done
 				break;
 			
-			throw new Exception("Error while parsing Annotation: Expected ',' or ')', got: " + tokenChar);
+			throw new Exception(getCurrentTokenLine() + ": Error while parsing Annotation: Expected ',' or ')', got: " + tokenChar);
 			
 		}
 		//TODO: If we get "// invisible" before end of line, the annotation is invisible?
@@ -620,7 +659,7 @@ public class ASMClassParser {
 			return val;
 		} catch (Exception e) {}
 		
-		throw new Exception("Could not parse value: " + token);
+		throw new Exception(getCurrentTokenLine() + ": Could not parse value: " + token);
 	}
 	
 	//Parse a method. Expect the currentToken to be the first
@@ -651,7 +690,7 @@ public class ASMClassParser {
 			}
 			exceptionsArray = exceptions.toArray(new String[exceptions.size()]);
 		} else if(!value.equals("\n"))
-			throw new Exception("Error while parsing method: Expected \\n on method header, got: " + value);
+			throw new Exception(getCurrentTokenLine() + ": Error while parsing method: Expected \\n on method header, got: " + value);
 		
 		MethodVisitor method = cl.visitMethod(access, methodName, desc, signature, exceptionsArray); //TODO: Generics and exceptions
 		
@@ -884,7 +923,7 @@ public class ASMClassParser {
 		}
 		
 		else if(value.equals("INVOKEDYNAMIC")) {
-			throw new Exception("Error while parsing method instructions: Handling 'INVOKEDYNAMIC' not yet implemented!");
+			throw new Exception(getCurrentTokenLine() + ": Error while parsing method instructions: Handling 'INVOKEDYNAMIC' not yet implemented!");
 		}
 		
 		else if(value.equals("TRYCATCHBLOCK")) {
@@ -930,7 +969,7 @@ public class ASMClassParser {
 			else if(typeStr.equals("CHOP"))
 				type = Opcodes.F_CHOP;
 			else
-				throw new Exception("Error while parsing method frame: No known FRAME type found. Got: " + typeStr);
+				throw new Exception(getCurrentTokenLine() + ": Error while parsing method frame: No known FRAME type found. Got: " + typeStr);
 			
 			Object[] localTypes = null;
 			Object[] stackTypes = null;
@@ -963,12 +1002,12 @@ public class ASMClassParser {
 			currentToken++; //Skip to next line
 			
 			if(!nextToken().equals("MAXLOCALS"))
-				throw new Exception("Error while parsing method: Expected MAXLOCALS, got: " + getCurrentToken());
+				throw new Exception(getCurrentTokenLine() + ": Error while parsing method: Expected MAXLOCALS, got: " + getCurrentToken());
 			currentToken++;
 			int maxLocals = Integer.parseInt(nextToken());
 			method.visitMaxs(maxStack, maxLocals);
 		} else {
-			throw new RuntimeException("Parser got unknown method instruction: " + value);
+			throw new RuntimeException(getCurrentTokenLine() + ": Parser got unknown method instruction: " + value);
 		}
 		//For now we asume(As has been observed) that MAXSTACK and MAXLOCALS always are together in the same order
 		/*else if(value.equals("MAXLOCALS")) {
@@ -1025,7 +1064,7 @@ public class ASMClassParser {
 			else if(typeStr.equals("U"))
 				return Opcodes.UNINITIALIZED_THIS;
 			else
-				throw new Exception("Error while parsing frame type, found no type for " + typeStr);
+				throw new Exception(getCurrentTokenLine() + ": Error while parsing frame type, found no type for " + typeStr);
 		}
 		
 		//Label
