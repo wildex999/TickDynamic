@@ -184,8 +184,8 @@ public class TickDynamicMod extends DummyModContainer
     	defaultTileEntityMinimumObjects = config.get(configCategoryDefaultTileEntities, TimedGroup.configKeyMinimumObjects, defaultTileEntityMinimumObjects, 
     			"The minimum number of TileEntities to update per tick, independent of time given.").getInt();
     	
-    	defaultAverageTicks = config.get("general", "averageTicks", defaultAverageTicks, "How many ticks of data to when averaging for time balancing.\n"
-    			+ "A higher number will make it take regular spikes into account, however will make it slower to addjust to changes.").getInt();
+    	defaultAverageTicks = config.get("general", "averageTicks", defaultAverageTicks, "How many ticks of data to use when averaging for time balancing.\n"
+    			+ "A higher number will make it take regular spikes into account, however will make it slower to adjust to changes.").getInt();
     	
     	if(includeExisting) {
     		
@@ -270,8 +270,8 @@ public class TickDynamicMod extends DummyModContainer
     		
     		//Set the correct externalGroup time
     		//TODO: But what if this time is allready accounted for? I.e, what if root time is already over defaultTickTime?
-    		long overTime = externalGroup.getTimeUsed() - (defaultTickTime*externalGroup.timeMilisecond); //overTime = time used above given tick time
-    		long overTimeTick = (defaultTickTime*externalGroup.timeMilisecond) - (root.getTimeUsed() - externalGroup.getTimeUsed());
+    		long overTime = externalGroup.getTimeUsed() - (50*externalGroup.timeMilisecond); //overTime = time used above given tick time
+    		long overTimeTick = (50*externalGroup.timeMilisecond) - (root.getTimeUsed() - externalGroup.getTimeUsed());
     		if(overTimeTick < 0)
     			overTime += overTimeTick;
     		/*System.out.println("TickTime: " + ((root.getTimeUsed()-externalGroup.getTimeUsed())/(double)externalGroup.timeMilisecond) + 
