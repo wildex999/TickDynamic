@@ -368,8 +368,8 @@ public class ASMClassParser {
 				access += Opcodes.ACC_SYNCHRONIZED;
 			else if(current.equals("volatile"))
 				access += Opcodes.ACC_VOLATILE;
-			/*else if(current.equals("bridge"))
-				access += Opcodes.ACC_BRIDGE;*/
+			else if(current.equals("bridge"))
+				access += Opcodes.ACC_BRIDGE;
 			else if(current.equals("varargs"))
 			{
 				if(!gotTransient)
@@ -392,12 +392,12 @@ public class ASMClassParser {
 				access += Opcodes.ACC_INTERFACE;
 			else if(current.equals("abstract"))
 				access += Opcodes.ACC_ABSTRACT;
-			/*else if(current.equals("strict"))
-				access += Opcodes.ACC_STRICT;*/
-			/*else if(current.equals("synthetic"))
-				access += Opcodes.ACC_SYNTHETIC;*/
-			/*else if(current.equals("annotation"))
-				access += Opcodes.ACC_ANNOTATION;*/
+			else if(current.equals("strict"))
+				access += Opcodes.ACC_STRICT;
+			else if(current.equals("synthetic"))
+				access += Opcodes.ACC_SYNTHETIC;
+			else if(current.equals("annotation"))
+				access += Opcodes.ACC_ANNOTATION;
 			else if(current.equals("enum"))
 				access += Opcodes.ACC_ENUM;
 			else if(current.equals("mandated"))
