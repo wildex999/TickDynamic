@@ -12,6 +12,8 @@ import java.net.URLEncoder;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import net.minecraftforge.common.ForgeVersion;
+
 public class VersionChecker implements Runnable {
 
 	public class VersionData {
@@ -39,7 +41,8 @@ public class VersionChecker implements Runnable {
 		String url = "http://mods.stjerncraft.com:8080";
 		String query = "v=error";
 		try {
-			query = String.format("mv=%s&v=%s", URLEncoder.encode("1.7.10-10.13.2.1230", encoding), URLEncoder.encode(TickDynamicMod.VERSION, encoding));
+			query = String.format("mv=%s&v=%s&sv=%s", URLEncoder.encode("forge1.7.10", encoding), 
+					URLEncoder.encode(TickDynamicMod.VERSION, encoding), URLEncoder.encode(ForgeVersion.getVersion(), encoding));
 			URLConnection connection = new URL(url + "/?" + query).openConnection();
 			connection.setRequestProperty("Accept-Charset", encoding);
 			connection.setRequestProperty("Host", "mods.stjerncraft.com");
@@ -66,7 +69,10 @@ public class VersionChecker implements Runnable {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+		
 		checkDone.set(true);
 	}
 	
