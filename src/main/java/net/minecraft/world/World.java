@@ -1881,11 +1881,12 @@ public abstract class World implements IBlockAccess
         this.unloadedEntityList.clear();
         this.theProfiler.endStartSection("regular");
         
-        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").endTimer();
-        com.wildex999.tickdynamic.timemanager.TimedEntities timedEntityGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldEntities(this);
-        timedEntityGroup.startTimer();
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getTimedGroup("other").endTimer();
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldEntities(this);
+        //com.wildex999.tickdynamic.timemanager.TimedEntities timedEntityGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldEntities(this);
+        //timedEntityGroup.startTimer();
 
-        for (i = timedEntityGroup.startUpdateObjects(this); i < this.loadedEntityList.size(); ++i)
+        for (i = 0; i < this.loadedEntityList.size(); ++i)
         {
             entity = (Entity)this.loadedEntityList.get(i);
 
@@ -1943,16 +1944,15 @@ public abstract class World implements IBlockAccess
                 this.onEntityRemoved(entity);
             }
 
-            i = timedEntityGroup.updateObjects(i);
             this.theProfiler.endSection();
         }
         
-        timedEntityGroup.endTimer();
+        //timedEntityGroup.endTimer();
 
         this.theProfiler.endStartSection("blockEntities");
         this.field_147481_N = true;
         
-        com.wildex999.tickdynamic.timemanager.TimedTileEntities timedTileGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldTileEntities(this);
+        com.wildex999.tickdynamic.timemanager.TimedEntities timedTileGroup = com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getWorldTileEntities(this).getTimedGroup();
         Iterator iterator = this.loadedTileEntityList.listIterator(timedTileGroup.startUpdateObjects(this));
         timedTileGroup.startTimer();
         
@@ -2002,7 +2002,7 @@ public abstract class World implements IBlockAccess
         }
         
         timedTileGroup.endTimer();
-        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getGroup("other").startTimer();
+        com.wildex999.tickdynamic.TickDynamicMod.tickDynamic.getTimedGroup("other").startTimer();
         
         if (!this.field_147483_b.isEmpty())
         {

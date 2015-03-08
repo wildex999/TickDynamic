@@ -4,6 +4,7 @@ import java.util.Map;
 
 import net.minecraft.launchwrapper.Launch;
 
+import com.wildex999.patcher.EntityInjector;
 import com.wildex999.patcher.TransformerPatcher;
 
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
@@ -25,9 +26,9 @@ public class LoadingPlugin implements IFMLLoadingPlugin {
 		
 		//Only return the patcher if running in live environment, to allow for testing when running from eclipse
 		if(!developmentEnvironment)
-			return new String[] { TransformerPatcher.class.getName() };
+			return new String[] { TransformerPatcher.class.getName(), EntityInjector.class.getName() };
 		else
-			return new String[] { };
+			return new String[] { EntityInjector.class.getName() };
 	}
 
 	@Override

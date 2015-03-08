@@ -11,9 +11,8 @@ import com.wildex999.tickdynamic.TickDynamicMod;
 import com.wildex999.tickdynamic.commands.CommandHandler.SubCommands;
 import com.wildex999.tickdynamic.timemanager.ITimed;
 import com.wildex999.tickdynamic.timemanager.TimeManager;
-import com.wildex999.tickdynamic.timemanager.TimedEntities;
 import com.wildex999.tickdynamic.timemanager.TimedGroup;
-import com.wildex999.tickdynamic.timemanager.TimedTileEntities;
+import com.wildex999.tickdynamic.timemanager.TimedEntities;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
@@ -241,12 +240,12 @@ public class CommandList implements ICommand {
 			+ decimalFormat.format(manager.getTimeMax()/(double)manager.timeMilisecond);
 			
 			//TileEntities time data
-			TimedTileEntities timedTile = mod.getWorldTileEntities(manager.world);
+			TimedEntities timedTile = mod.getWorldTileEntities(manager.world).getTimedGroup();
 			newData.tileData = decimalFormat.format(timedTile.getTimeUsedAverage()/(double)timedTile.timeMilisecond) + " / " 
 					+ decimalFormat.format(timedTile.getTimeMax()/(double)timedTile.timeMilisecond);
 			
 			//Entities time data
-			TimedEntities timedEntity = mod.getWorldEntities(manager.world);
+			TimedEntities timedEntity = mod.getWorldEntities(manager.world).getTimedGroup();
 			newData.entityData = decimalFormat.format(timedEntity.getTimeUsedAverage()/(double)timedEntity.timeMilisecond) + " / " 
 					+ decimalFormat.format(timedEntity.getTimeMax()/(double)timedEntity.timeMilisecond);
 			
@@ -268,7 +267,7 @@ public class CommandList implements ICommand {
 		}
 		
 		//Add Other
-		TimedGroup other = mod.getGroup("other");
+		TimedGroup other = mod.getTimedGroup("other");
 		if(other != null)
 		{
 			newData = new ListData();
@@ -280,7 +279,7 @@ public class CommandList implements ICommand {
 		}
 		
 		//Add External
-		TimedGroup external = mod.getGroup("external");
+		TimedGroup external = mod.getTimedGroup("external");
 		if(other != null)
 		{
 			newData = new ListData();
@@ -323,7 +322,7 @@ public class CommandList implements ICommand {
 
 			
 			//TileEntities TPS data
-			TimedTileEntities timedTile = mod.getWorldTileEntities(manager.world);
+			TimedEntities timedTile = mod.getWorldTileEntities(manager.world).getTimedGroup();
 			if(timedTile.averageTPS >= 19)
 				color = EnumChatFormatting.GREEN.toString();
 			else if(timedTile.averageTPS > 10)
@@ -333,7 +332,7 @@ public class CommandList implements ICommand {
 			newData.tileData = color + decimalFormat.format(timedTile.averageTPS) + EnumChatFormatting.RESET + "TPS";
 			
 			//Entities time data
-			TimedEntities timedEntity = mod.getWorldEntities(manager.world);
+			TimedEntities timedEntity = mod.getWorldEntities(manager.world).getTimedGroup();
 			if(timedEntity.averageTPS >= 19)
 				color = EnumChatFormatting.GREEN.toString();
 			else if(timedEntity.averageTPS > 10)
@@ -383,11 +382,11 @@ public class CommandList implements ICommand {
 				newData.worldName = "NULL";
 			
 			//TileEntities TPS data
-			TimedTileEntities timedTile = mod.getWorldTileEntities(manager.world);
+			TimedEntities timedTile = mod.getWorldTileEntities(manager.world).getTimedGroup();
 			newData.tileData = "" + timedTile.getObjectsRunAverage();
 			
 			//Entities time data
-			TimedEntities timedEntity = mod.getWorldEntities(manager.world);
+			TimedEntities timedEntity = mod.getWorldEntities(manager.world).getTimedGroup();
 			newData.entityData = "" + timedEntity.getObjectsRunAverage();
 			
 			//Max length update
@@ -436,11 +435,11 @@ public class CommandList implements ICommand {
 			newData.worldData = "" + manager.getSliceMax();
 			
 			//TileEntities TPS data
-			TimedTileEntities timedTile = mod.getWorldTileEntities(manager.world);
+			TimedEntities timedTile = mod.getWorldTileEntities(manager.world).getTimedGroup();
 			newData.tileData = "" + timedTile.getSliceMax();
 			
 			//Entities time data
-			TimedEntities timedEntity = mod.getWorldEntities(manager.world);
+			TimedEntities timedEntity = mod.getWorldEntities(manager.world).getTimedGroup();
 			newData.entityData = "" + timedEntity.getSliceMax();
 			
 			//Max length update
@@ -487,11 +486,11 @@ public class CommandList implements ICommand {
 				newData.worldName = "NULL";
 			
 			//TileEntities TPS data
-			TimedTileEntities timedTile = mod.getWorldTileEntities(manager.world);
+			TimedEntities timedTile = mod.getWorldTileEntities(manager.world).getTimedGroup();
 			newData.tileData = "" + timedTile.getMinimumObjects();
 			
 			//Entities time data
-			TimedEntities timedEntity = mod.getWorldEntities(manager.world);
+			TimedEntities timedEntity = mod.getWorldEntities(manager.world).getTimedGroup();
 			newData.entityData = "" + timedEntity.getMinimumObjects();
 			
 			//Max length update

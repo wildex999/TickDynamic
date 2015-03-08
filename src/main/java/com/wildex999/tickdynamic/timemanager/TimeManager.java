@@ -32,6 +32,10 @@ public class TimeManager implements ITimed {
 	private long timeMax; //How much time allowed to use, set by parent TimeManager when balancing
 	private List<ITimed> children;
 	
+	private boolean useCached; //Whether to use cached values instead of iterating children
+	private long cachedTimeUsedAverage;
+	private long cachedTimeReserved;
+	
 	public final String name;
 	public final TickDynamicMod mod;
 	public final World world;
@@ -39,7 +43,10 @@ public class TimeManager implements ITimed {
 	
 	public TimeManager(TickDynamicMod mod, World world,  String name, String configEntry) {
 		children = new ArrayList<ITimed>();
-		mod.timedObjects.put(name, this);
+		if(configEntry != null)
+			mod.timedObjects.put(configEntry, this);
+		else
+			mod.timedObjects.put(name, this);
 		this.name = name;
 		this.mod = mod;
 		this.world = world;
@@ -51,6 +58,8 @@ public class TimeManager implements ITimed {
 	@Override
     public void init() {
 		setTimeMax(0);
+		cachedTimeUsedAverage = 0;
+		cachedTimeReserved = 0;
 		
 		int configSlices = 100;
 		if(configEntry != null)
@@ -58,6 +67,11 @@ public class TimeManager implements ITimed {
 		else
 			setSliceMax(mod.defaultWorldSlicesMax);
     }
+	
+	@Override
+	public String getName() {
+		return name;
+	}
     
 	@Override
     public void loadConfig(boolean saveDefaults) {
@@ -107,8 +121,21 @@ public class TimeManager implements ITimed {
 			//Special cases: sliceMax == 0. These will not be limited by the timeMax, but will still take time from the others
 			if(timed.getSliceMax() == 0)
 			{
+				if(TickDynamicMod.debug)
+					System.out.println(timed.getName() + " reserved: " + timed.getTimeUsedAverage());
 				leftover -= timed.getTimeUsedAverage();
 				it.remove();
+				if(leftover <= 0)
+					leftover = 1;
+			}
+			else
+			{
+				//Special case: Children with sliceMax == 0
+				long reserved = timed.getReservedTime();
+				if(TickDynamicMod.debug)
+					System.out.println(timed.getName() + " children Reserved: " + reserved);
+				leftover -= reserved;
+				timed.setTimeMax(reserved);
 				if(leftover <= 0)
 					leftover = 1;
 			}
@@ -116,6 +143,7 @@ public class TimeManager implements ITimed {
 		allSlicesPrev = allSlices; //Used for last redistribution of leftover
 		
 		//Calculate and redistribute according to slices
+		boolean firstPass = true;
 		while(leftover > 0 && childrenLeft.size() > 0)
 		{
 			long before = leftover; //Store the value as we make changes to leftover as we go
@@ -125,9 +153,15 @@ public class TimeManager implements ITimed {
 			{
 				ITimed child = it.next();
 				long slice = 1 + (long)(before * ((double)child.getSliceMax() / (double)allSlices)); //A slice can't be 0
+				if(firstPass == true)
+				{
+					long reserved = child.getReservedTime();
+					slice -= reserved;
+					if(slice < 0)
+						slice = 0;
+				}
 				long currentMax = child.getTimeMax() + slice;
-				if(currentMax > 0)
-					leftover -= slice;
+				leftover -= slice;
 		
 				//If more than 1% to spare, put into leftover pool
 				long left = currentMax - child.getTimeUsedAverage();
@@ -141,7 +175,10 @@ public class TimeManager implements ITimed {
 					allSlices -= child.getSliceMax(); //Remove it's contribution to allSlices so percentages becomes correct
 				}
 				child.setTimeMax(currentMax+1); //Update the max
+				if(TickDynamicMod.debug)
+					System.out.println(child.getName() + " currentMax: " + currentMax);
 			}
+			firstPass = false;
 		}
 		
 		//Give back any remaining leftover for growth
@@ -207,12 +244,14 @@ public class TimeManager implements ITimed {
 	public long getTimeUsedAverage() {
 		long output = 0;
 		
+		if(useCached)
+			return cachedTimeUsedAverage;
+		
 		for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
 		{
 			ITimed child = it.next();
 			output += child.getTimeUsedAverage();
 		}
-		
 		return output;
 	}
 	public long getTimeUsedLast() {
@@ -227,17 +266,45 @@ public class TimeManager implements ITimed {
 		return output;
 	}
 	
-	//Called at the beginning of a new tick to prepare for new time capture etc.
-	//clearChildren: Whether to also call for children(Who will call for their children)(Recursion)
 	@Override
-	public void newTick(boolean clearChildren) {
+	public long getReservedTime() {
+		long reservedTime = 0;
 		
-		if(clearChildren)
+		if(useCached)
+			return cachedTimeReserved;
+		
+		for(ITimed child : children)
+			reservedTime += child.getReservedTime();
+		return reservedTime;
+	}
+	
+	//Called at the beginning of a new tick to prepare for new time capture etc.
+	//recursive: Whether to also call for children(Who will call for their children)(Recursion)
+	@Override
+	public void newTick(boolean recursive) {
+		
+		if(recursive)
 		{
 			for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
 				it.next().newTick(true);
 		}
+		
+		useCached = false;
 			
+	}
+	
+	public void endTick(boolean recursive) {
+		if(recursive)
+		{
+			for(Iterator<ITimed> it = children.iterator(); it.hasNext();)
+				it.next().endTick(recursive);
+		}
+		
+		//Update caches
+		cachedTimeUsedAverage = getTimeUsedAverage();
+		cachedTimeReserved = getReservedTime();
+		
+		useCached = true;
 	}
 	
 	public List<ITimed> getChildren() {

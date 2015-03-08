@@ -19,7 +19,7 @@ public class TimedGroup implements ITimed {
 	protected int objectsRun; //How many objects ran for the current timeUsed
 	protected int objectsRunAverage;
 	protected int prevObjectsRun; //objectsRun from previous tick
-	protected int minimumObjects; //Minimum number of objects to update each tick
+	
 	protected long startTime; //Start of time measurement
 	
 	protected int averageTicks = 20; //How many ticks back to average over
@@ -31,8 +31,6 @@ public class TimedGroup implements ITimed {
 	public final World world;
 	public String configEntry;
 	
-	public static final String configKeyMinimumObjects = "minimumObjects";
-	
 	public enum GroupType {
 		TileEntity,
 		Entity,
@@ -40,7 +38,10 @@ public class TimedGroup implements ITimed {
 	}
 	
 	public TimedGroup(TickDynamicMod mod, World world, String name, String configEntry) {
-		mod.timedObjects.put(name, this);
+		if(configEntry != null)
+			mod.timedObjects.put(configEntry, this);
+		else
+			mod.timedObjects.put(name, this);
 		this.name = name;
 		this.mod = mod;
 		this.world = world;
@@ -61,13 +62,14 @@ public class TimedGroup implements ITimed {
 		int configSlices = 100;
 		int configMinimumObjects = 1;
 		if(configEntry != null)
-		{
 			configSlices = mod.config.get(configEntry, configKeySlicesMax, configSlices).getInt();
-			configMinimumObjects = mod.config.get(configEntry, configKeyMinimumObjects, configMinimumObjects).getInt();
-		}
 		setSliceMax(configSlices);
-		setMinimumObjects(configMinimumObjects);
     }
+	
+	@Override
+	public String getName() {
+		return name;
+	}
 	
 	@Override 
 	public void loadConfig(boolean saveDefaults) {
@@ -86,8 +88,17 @@ public class TimedGroup implements ITimed {
 		startTime = System.nanoTime();
 	}
 	
-	public void endTimer() {
-		timeUsed += System.nanoTime() - startTime;
+	//Start timer with provided startTime, used for chaining timers
+	public void startTimer(long startTime) {
+		this.startTime = startTime;
+	}
+	
+	//End timer and add time to timeUsed
+	//Returns current nanoTime, used for chaining
+	public long endTimer() {
+		long time = System.nanoTime() - startTime;
+		timeUsed += time;
+		return time;
 	}
 	
 	@Override
@@ -121,16 +132,16 @@ public class TimedGroup implements ITimed {
 		return prevTimeUsed;
 	}
 	
+	@Override
+	public long getReservedTime() {
+
+		
+		return 0;
+	}
+	
 	//Manually set the time used
 	public void setTimeUsed(long newTimeUsed) {
 		timeUsed = newTimeUsed;
-	}
-	
-	public void setMinimumObjects(int minimum) {
-		minimumObjects = minimum;
-	}
-	public int getMinimumObjects() {
-		return minimumObjects;
 	}
 	
 	//Get the number of objects that have run within the currently measured timeUsed
@@ -146,7 +157,7 @@ public class TimedGroup implements ITimed {
 	
 	//Will also clear objectsRun
 	@Override
-	public void newTick(boolean clearChildren) {
+	public void newTick(boolean recursive) {
 		prevTimeUsed = timeUsed;
 		prevObjectsRun = objectsRun;
 		timeUsed = 0;
@@ -169,6 +180,10 @@ public class TimedGroup implements ITimed {
 		for(Integer count : listObjectsRun)
 			objectsRunAverage += count;
 		objectsRunAverage = objectsRunAverage/listObjectsRun.size();
+	}
+	
+	@Override
+	public void endTick(boolean recursive) {
 	}
 	
 	@Override

@@ -3,6 +3,7 @@ package com.wildex999.tickdynamic.timemanager;
 import java.util.Iterator;
 
 public interface ITimed {
+	
 	//Easy conversion to nanoseconds
 	public static final long timeMilisecond = 1000000;
 	public static final long timeSecond = 1000000000;
@@ -32,11 +33,19 @@ public interface ITimed {
 	public long getTimeUsed();
 	public long getTimeUsedAverage(); 
 	public long getTimeUsedLast();  //Time used last tick
+	
+	//Return the time reserved(Itself + Any children with sliceMax == 0)
+	public long getReservedTime();
 		
 	//Called at the beginning of a new tick to prepare for new time capture etc.
-	//clearChildren: Whether to also call for children(Who will call for their children)(Recursion)
-	public void newTick(boolean clearChildren);
+	//recursive: Whether to also call for children(Who will call for their children)(Recursion)
+	public void newTick(boolean recursive);
+	
+	//Called at the end of a tick, before new time balance
+	public void endTick(boolean recursive);
 	
 	//Simple check to differentiate the objects and managers
 	public boolean isManager();
+	
+	public String getName();
 }

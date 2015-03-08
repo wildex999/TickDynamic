@@ -34,12 +34,13 @@ import com.google.common.eventbus.Subscribe;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.wildex999.patcher.PatchParser;
 import com.wildex999.tickdynamic.commands.CommandHandler;
+import com.wildex999.tickdynamic.listinject.EntityGroup;
+import com.wildex999.tickdynamic.listinject.EntityType;
 import com.wildex999.tickdynamic.timemanager.ITimed;
 import com.wildex999.tickdynamic.timemanager.TimeManager;
-import com.wildex999.tickdynamic.timemanager.TimedEntities;
 import com.wildex999.tickdynamic.timemanager.TimedGroup;
 import com.wildex999.tickdynamic.timemanager.TimedGroup.GroupType;
-import com.wildex999.tickdynamic.timemanager.TimedTileEntities;
+import com.wildex999.tickdynamic.timemanager.TimedEntities;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
@@ -73,12 +74,13 @@ import cpw.mods.fml.common.network.NetworkRegistry;
 public class TickDynamicMod extends DummyModContainer
 {
     public static final String MODID = "tickDynamic";
-    public static final String VERSION = "0.1.4";
+    public static final String VERSION = "0.2.0";
     public static boolean debug = false;
     public static TickDynamicMod tickDynamic;
     
     
     public Map<String, ITimed> timedObjects;
+    public Map<String, EntityGroup> entityGroups;
     public TimeManager root;
     public boolean enabled;
     public MinecraftServer server;
@@ -95,14 +97,15 @@ public class TickDynamicMod extends DummyModContainer
     
     //Config
     public Configuration config;
+    public boolean saveConfig;
     
-    public static final String configCategoryDefaultEntities = "general.entitydefaults";
-    public static final String configCategoryDefaultTileEntities = "general.tileentitydefaults";
+    public static final String configCategoryDefaultEntities = "groups.entity";
+    public static final String configCategoryDefaultTileEntities = "groups.tileentity";
     public int defaultTickTime = 50;
     public int defaultEntitySlicesMax = 100;
     public int defaultEntityMinimumObjects = 100;
-    public int defaultTileEntitySlicesMax = 100;
-    public int defaultTileEntityMinimumObjects = 100;
+    public float defaultEntityMinimumTPS = 0;
+    public float defaultEntityMinimumTime = 0;
     public int defaultWorldSlicesMax = 100;
     public int defaultAverageTicks = 20;
     
@@ -133,97 +136,45 @@ public class TickDynamicMod extends DummyModContainer
     @Subscribe
     public void preInit(FMLPreInitializationEvent event) {
     	config = new Configuration(event.getSuggestedConfigurationFile());
-    	loadConfig(false);
     }
     
     //Load the configuration file
     //includeExisting: Whether to reload the config options for already loaded Managers and Groups.
     public void loadConfig(boolean includeExisting) {
-    	config.load();
-    	
-    	//Generate default config if not set
-    	config.getCategory("general");
-    	config.setCategoryComment("general", "WEBSITE: http://mods.stjerncraft.com/tickdynamic   <- Head here for the documentation, if you have problems or if you have questions."
-    			+ "\n\n"
-    			+ "Slices are the way you control the time allottment to each world, and within each world, to Entities and TileEntities.\n"
-    			+ "Each tick the time for a tick(By default 50ms) will be distributed among all the worlds, according to how many slices they have.\n"
-    			+ "If you have 3 worlds, each with 100 slices, then each world will get 100/300 = ~33% of the time.\n"
-    			+ "So you can thus give the Overworld a maxSlices of 300, while giving the other two 100 each. This way the Overworld will get 60% of the time.\n"
-    			+ "\n"
-    			+ "Of the time given to the world, this is further distributed to TileEntities and Entities according to their slices, the same way.\n"
-    			+ "TileEntities and Entities are given a portion of the time first given to the world, so their slices are only relative to each other within that world."
-    			+ "If any group has unused time, then that time will be distributed to the remaining groups.\n"
-    			+ "So even if you give 1000 slices to TileEntities and 100 to Entities, as long as as TileEntities aren't using it's full time,\n"
-    			+ "Entities will be able to use more than 100 slices of time.\n"
-    			+ "\n"
-    			+ "So the formula for slices to time percentage is: (group.maxSlices/allSiblings.maxSlices)*100\n"
-    			+ "\n"
-    			+ "Note: maxSlices = 0 has a special meaning. It means that the group's time usage is accounted for, but not limited.\n"
-    			+ "Basically it can take all the time it needs, even if it goes above the parent maxTime, pushing its siblings down to minimumObjects.");
-    	
-    	enabled = config.get("general", "enabled", true, "").getBoolean();
-    	
-    	debug = config.get("general", "debug", debug, "Debug output. Warning: Setting this to true will cause a lot of console spam.\n"
-    			+ "Only do it if developer or someone else asks for the output!").getBoolean();
-    	
-    	defaultTickTime = config.get("worlds", "tickTime", defaultTickTime, "The time allotted to a tick in milliseconds. 20 Ticks per second means 50ms per tick.\n"
-    			+ "This is the base time allotment it will use when balancing the time usage between worlds and objects.\n"
-    			+ "You can set this to less than 50ms if you want to leave a bit of buffer time for other things, or don't want to use 100% cpu.").getInt();
-    	
-    	defaultWorldSlicesMax = config.get("general", "defaultWorldSlicesMax", defaultWorldSlicesMax, "The default maxSlices for a new automatically added world.").getInt();
-    	
-    	config.setCategoryComment(configCategoryDefaultEntities, "The default values for new Entity groups when automatically created for new worlds.");
-    	defaultEntitySlicesMax = config.get(configCategoryDefaultEntities, TimedGroup.configKeySlicesMax, defaultEntitySlicesMax, 
-    			"The number of time slices given to the group.").getInt();
-    	defaultEntityMinimumObjects = config.get(configCategoryDefaultEntities, TimedGroup.configKeyMinimumObjects, defaultEntityMinimumObjects, 
-    			"The minimum number of Entities to update per tick, independent of time given.").getInt();
-    	
-    	config.setCategoryComment(configCategoryDefaultTileEntities, "The default values for new TileEntity groups when automatically created for new worlds.");
-    	defaultTileEntitySlicesMax = config.get(configCategoryDefaultTileEntities, TimedGroup.configKeySlicesMax, defaultTileEntitySlicesMax, 
-    			"The number of time slices given to the group.").getInt();
-    	defaultTileEntityMinimumObjects = config.get(configCategoryDefaultTileEntities, TimedGroup.configKeyMinimumObjects, defaultTileEntityMinimumObjects, 
-    			"The minimum number of TileEntities to update per tick, independent of time given.").getInt();
-    	
-    	defaultAverageTicks = config.get("general", "averageTicks", defaultAverageTicks, "How many ticks of data to use when averaging for time balancing.\n"
-    			+ "A higher number will make it take regular spikes into account, however will make it slower to adjust to changes.").getInt();
-    	
-    	if(includeExisting) {
-    		
-    		for(ITimed timed : timedObjects.values())
-    			timed.loadConfig(false);
-    		
-    		if(root != null)
-    			root.setTimeMax(defaultTickTime * TimeManager.timeMilisecond);
-    	}
-    	
-    	//Save any new defaults
-    	config.save();
+    	//TODO: Separate Initial load, reload and write
+    	TickDynamicConfig.loadConfig(this, includeExisting);
     }
     
     public void writeConfig(boolean saveFile) {
     	//TODO
     }
     
+    //Queue to save any changes done to the config
+    public void queueSaveConfig() {
+    	saveConfig = true;
+    }
+    
     @Subscribe
     public void init(FMLInitializationEvent event) {
     	FMLCommonHandler.instance().bus().register(this);
     	timedObjects = new HashMap<String, ITimed>();
+    	entityGroups = new HashMap<String, EntityGroup>();
+    	
+    	loadConfig(false);
     	
     	root = new TimeManager(this, null, "root", null);
     	root.init();
     	root.setTimeMax(defaultTickTime * TimeManager.timeMilisecond);
     	
     	//Other group accounts the time used in a tick, but not for Entities or TileEntities
-    	TimedGroup otherTimed = new TimedGroup(this, null, "other", null);
+    	TimedGroup otherTimed = new TimedGroup(this, null, "other", "other");
     	otherTimed.setSliceMax(0); //Make it get unlimited time
     	root.addChild(otherTimed);
     	
     	//External group accounts the time used between ticks due to external load
-    	TimedGroup externalTimed = new TimedGroup(this, null, "external", null);
+    	TimedGroup externalTimed = new TimedGroup(this, null, "external", "external");
     	externalTimed.setSliceMax(0);
     	root.addChild(externalTimed);
-    	
-    	
     }
     
     
@@ -265,11 +216,10 @@ public class TickDynamicMod extends DummyModContainer
     			}
     		}
     		
-    		TimedGroup externalGroup = getGroup("external");
+    		TimedGroup externalGroup = getTimedGroup("external");
     		externalGroup.endTimer();
     		
     		//Set the correct externalGroup time
-    		//TODO: But what if this time is allready accounted for? I.e, what if root time is already over defaultTickTime?
     		long overTime = externalGroup.getTimeUsed() - (50*externalGroup.timeMilisecond); //overTime = time used above given tick time
     		long overTimeTick = (50*externalGroup.timeMilisecond) - (root.getTimeUsed() - externalGroup.getTimeUsed());
     		if(overTimeTick < 0)
@@ -288,7 +238,7 @@ public class TickDynamicMod extends DummyModContainer
 	        //Clear any values from the previous tick for all worlds.
     		root.newTick(true);
     		
-    		getGroup("other").startTimer();
+    		getTimedGroup("other").startTimer();
     	}
     }
     
@@ -296,17 +246,24 @@ public class TickDynamicMod extends DummyModContainer
     public void tickEventEnd(ServerTickEvent event) {	
     	if(event.phase == Phase.END)
     	{
-	     	getGroup("other").endTimer();
+	     	getTimedGroup("other").endTimer();
+	     	root.endTick(true);
 	     	
 	     	if(debug)
 	     		System.out.println("Tick time used: " + (root.getTimeUsed()/root.timeMilisecond) + "ms");
 	     	
 	     	//After every world is done ticking, re-balance the time slices according
-	     	   //to the data gathered during the tick.
+	     	//to the data gathered during the tick.
 	     	root.balanceTime();
 	     	
 	     	//Calculate TPS
 	     	updateTPS();
+	     	
+	     	if(saveConfig)
+	     	{
+	     		saveConfig = false;
+	     		config.save();
+	     	}
     	}
     }
     
@@ -330,33 +287,43 @@ public class TickDynamicMod extends DummyModContainer
 		}
     }
     
-    public TimedGroup getGroup(String name) {
+    //Get the named TimedGroup.
+    //Return: Null if not loaded
+    public TimedGroup getTimedGroup(String name) {
     	return (TimedGroup)timedObjects.get(name);
     }
     
-    public TimeManager getManager(String name) {
+    //Get a named EntityGroup which does not belong to a world
+    //Return: Null if doesn't exist in config
+    public EntityGroup getEntityGroup(String name) {
+    	//All Global Groups are loaded during config load/reload
+    	EntityGroup group = entityGroups.get(name);
+    	
+    	return group;
+    }
+    
+    public TimeManager getTimeManager(String name) {
     	return (TimeManager)timedObjects.get(name);
     }
     
     //Get the TimeManager for a world.
     //Will create if it doesn't exist.
-    public TimeManager getWorldManager(World world) {
+    public TimeManager getWorldTimeManager(World world) {
     	String remote = "";
     	if(world.isRemote)
-    		remote = "r";
-    	String managerName = new StringBuilder().append(remote).append("tm_DIM").append(world.provider.dimensionId).toString();
-    	TimeManager worldManager = getManager(managerName);
+    		remote = "client_";
+    	String managerName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).toString();
+    	TimeManager worldManager = getTimeManager(managerName);
     	
     	if(worldManager == null)
     	{
-    		worldManager = new TimeManager(this, world, managerName, "worlds.dim" + world.provider.dimensionId);
+    		worldManager = new TimeManager(this, world, managerName, managerName);
     		worldManager.init();
     		if(world.isRemote)
     			worldManager.setSliceMax(0);
     		
-    		config.setCategoryComment("worlds.dim" + world.provider.dimensionId, world.provider.getDimensionName());
-    		
-    		//TODO: Allow for worlds to be child of other worlds
+    		config.setCategoryComment(managerName, world.provider.getDimensionName());
+
     		root.addChild(worldManager);
     	}
     	
@@ -365,45 +332,64 @@ public class TickDynamicMod extends DummyModContainer
     
     //Get the named TimedGroup from the given world.
     //Will create if it doesn't exist.
-    public TimedGroup getWorldGroup(World world, TimedGroup.GroupType type, String name) {
+    public TimedEntities getWorldTimedGroup(World world, String name) {
     	String remote = "";
     	if(world.isRemote)
-    		remote = "r";
-    	String groupName = new StringBuilder().append(remote).append("DIM").append(world.provider.dimensionId).append("_").append(name).toString();
-    	TimedGroup group = getGroup(groupName);
+    		remote = "client_";
+    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).append(".").append(name).toString(); 
+    	TimedGroup group = getTimedGroup(groupName);
     	
-    	if(group == null)
+    	if(group == null || !(group instanceof TimedEntities))
     	{
-    		if(type == TimedGroup.GroupType.TileEntity)
-    		{
-    			group = new TimedTileEntities(this, world, groupName, "worlds.dim" + world.provider.dimensionId + ".tileentity");
-    			group.init();
-    		}
-    		else if(type == TimedGroup.GroupType.Entity)
-    		{
-    			group = new TimedEntities(this, world, groupName, "worlds.dim" + world.provider.dimensionId + ".entity");
-    			group.init();
-    		}
+    		String baseGroupName = new StringBuilder().append("groups.").append(name).toString();
+    		TimedGroup baseGroup = getTimedGroup(baseGroupName);
+    		group = new TimedEntities(this, world, name, groupName, baseGroup);
+    		group.init();
     		
-    		TimeManager worldManager = getWorldManager(world);
+    		TimeManager worldManager = getWorldTimeManager(world);
     		worldManager.addChild(group);
+    	}
+    	
+    	return (TimedEntities)group;
+    }
+    
+    //groupType: The type to make the new Group if it doesn't already exist
+    //Will return existing group even if type doesn't match
+    public EntityGroup getWorldEntityGroup(World world, String name, EntityType groupType) {
+    	String remote = "";
+    	if(world.isRemote)
+    		remote = "client_";
+    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).append(".").append(name).toString();
+    	EntityGroup group = getEntityGroup(groupName);
+    	
+    	if(group == null) //Create group for world
+    	{
+    		String baseGroupName = new StringBuilder().append("groups.").append(name).toString();
+    		EntityGroup baseGroup = getEntityGroup(baseGroupName);
+    		group = new EntityGroup(this, getWorldTimedGroup(world, name), groupName, groupType, baseGroup);
+    		entityGroups.put(groupName, group);
     	}
     	
     	return group;
     }
     
-    //Get the group for TileEntities in the given world
-    //Will create the world TimeManager and TE Group if it doesn't exist.
-    public TimedTileEntities getWorldTileEntities(World world) {
-    	TimedGroup teGroup = getWorldGroup(world, TimedGroup.GroupType.TileEntity, "te");
-    	return (TimedTileEntities)teGroup;
+    public ConfigCategory getWorldConfigCategory(World world) {
+    	return config.getCategory("worlds.dim" + world.provider.dimensionId);
     }
     
-    public TimedEntities getWorldEntities(World world) {
-    	TimedGroup entityGroup = getWorldGroup(world, TimedGroup.GroupType.Entity, "e");
-    	return (TimedEntities)entityGroup;
+    //Get the group for Tile Entities in the given world
+    //Will create the world TimeManager and Entity Group if it doesn't exist.
+    public EntityGroup getWorldTileEntities(World world) {
+    	EntityGroup teGroup = getWorldEntityGroup(world, "tileentity", EntityType.TileEntity);
+    	return teGroup;
     }
     
+    //Get the group for Tile Entities in the given world
+    //Will create the world TimeManager and Entity Group if it doesn't exist.
+    public EntityGroup getWorldEntities(World world) {
+    	EntityGroup eGroup = getWorldEntityGroup(world, "entity", EntityType.Entity);
+    	return eGroup;
+    }
     
 
 }
