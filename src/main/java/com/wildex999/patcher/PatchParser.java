@@ -19,7 +19,8 @@ import java.util.regex.Pattern;
  * 
  * Instruction:
  * @ = Command
- * * = Anything. For example: 'LDC 1*2'  can be 'LDC 132', 'LDC 1432', 'LDC 1test2' (Note: Does not match newline! Note2: Does not match length 0)
+ * * = Anything. For example: 'LDC 1*2'  can be 'LDC 132', 'LDC 1432', 'LDC 1test2' (Note: Does not match length 0)
+ * + = Anything until newline(Newline is not included)
  * <x] = Anything less than 'x' characters in length. Example: 'Test<3]g' can be 'Testing'
  * >x] = Anything more than 'x' characters in length. Example: ''
  * #x] = Anything exactly 'x' characters in length
@@ -97,6 +98,7 @@ public class PatchParser {
 	
 	public enum TokenType {
 		Anything,
+		AnythingLine,
 		AnythingLess,
 		AnythingMore,
 		AnythingExact,
@@ -243,6 +245,11 @@ public class PatchParser {
 				case '*':
 					token.replacementTokens.add( new ReplacementToken(TokenType.Text, str.substring(startIndex, i)) );
 					token.replacementTokens.add(new ReplacementToken(TokenType.Anything));
+					startIndex = i + 1;
+					break;
+				case '+':
+					token.replacementTokens.add( new ReplacementToken(TokenType.Text, str.substring(startIndex, i)) );
+					token.replacementTokens.add(new ReplacementToken(TokenType.AnythingLine));
 					startIndex = i + 1;
 					break;
 				case '<':
@@ -414,11 +421,11 @@ public class PatchParser {
 			if(ended != true)
 				throw new Exception("Reached end of stream without End command!");
 			
-			System.out.println("RegEx: " + detectionRegEx.toString());
+			System.out.println("(" + token.type + ") RegEx: " + detectionRegEx.toString());
 			
 			//Find occurrence in base using generated RegEx
 			String subBase = output.substring(baseOrigin, baseLimit);
-			pattern = Pattern.compile(detectionRegEx.toString());
+			pattern = Pattern.compile(detectionRegEx.toString(), Pattern.DOTALL);
 			matcher = pattern.matcher(subBase);
 			if(!matcher.find())
 				throw new Exception("Failed to match: '" + detectionRegEx.toString() + "'\nOn base: '" + subBase +"'");
@@ -495,7 +502,9 @@ public class PatchParser {
 			if(action.type == TokenType.Text)
 				detectionRegEx.append(Pattern.quote((String)action.var));
 			else if(action.type == TokenType.Anything)
-				detectionRegEx.append(".+");
+				detectionRegEx.append(".+"); //We use DOTALL so it includes newline
+			else if(action.type == TokenType.AnythingLine)
+				detectionRegEx.append("[^<>\\r\\n]+"); //Pretty much the .+ without DOTALL
 			else if(action.type == TokenType.AnythingExact)
 				detectionRegEx.append(".{").append(action.var).append("}");
 			else if(action.type == TokenType.AnythingLess)
@@ -506,7 +515,7 @@ public class PatchParser {
 			{
 				if(varSet.get((String)action.var) != null)
 					throw new Exception("(Token:"+token.type+") Trying to set a variable("+ action.var +") that has already been set!");
-				detectionRegEx.append("(?<").append(action.var).append(">.+)");
+				detectionRegEx.append("(?<").append(action.var).append(">[^<>\\r\\n]+)");
 				varSet.put((String)action.var, true);
 			}
 			else if(action.type == TokenType.AnythingGet)
