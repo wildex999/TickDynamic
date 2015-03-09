@@ -41,7 +41,9 @@ public class TickDynamicConfig {
     	
 		mod.enabled = mod.config.get("general", "enabled", true, "").getBoolean();
     	
-		mod.debug = mod.config.get("general", "debug", mod.debug, "Debug output. Warning: Setting this to true will cause a lot of console spam.\n"
+		mod.debug = mod.config.get("general", "debug", mod.debug, "Debug output. Warning: Might output a lot of data to console!").getBoolean();
+		
+		mod.debugTimer = mod.config.get("general", "debugTimer", mod.debugTimer, "Debug output from time allocation and calculation. Warning: Setting this to true will cause a lot of console spam.\n"
     			+ "Only do it if developer or someone else asks for the output!").getBoolean();
     	
 		mod.defaultWorldSlicesMax = mod.config.get("general", "defaultWorldSlicesMax", mod.defaultWorldSlicesMax, "The default maxSlices for a new automatically added world.").getInt();
@@ -133,7 +135,8 @@ public class TickDynamicConfig {
 			
 			if(remove)
 			{
-				System.out.println("Remove Global Group: " + groupPath);
+				if(mod.debug)
+					System.out.println("Remove Global Group: " + groupPath);
 				mod.entityGroups.remove(groupPath);
 			}
 		}
@@ -147,15 +150,17 @@ public class TickDynamicConfig {
 			if(entityGroup == null)
 			{
 				String groupPath = "groups." + group.getName();
-				entityGroup = new EntityGroup(mod, null, groupPath, EntityType.Entity, null);
+				entityGroup = new EntityGroup(mod, null, null, group.getName(), groupPath, EntityType.Entity, null);
 				mod.entityGroups.put(groupPath, entityGroup);
-				System.out.println("New Global Group: " + groupPath);
+				if(mod.debug)
+					System.out.println("New Global Group: " + groupPath);
 			}
 			else
 			{
 				//Add to list of groups to update
 				updateGroups.add(entityGroup);
-				System.out.println("Update Global Group: groups." + group.getName());
+				if(mod.debug)
+					System.out.println("Update Global Group: groups." + group.getName());
 			}
 		}
 
@@ -176,7 +181,7 @@ public class TickDynamicConfig {
 		{
 			timedGroup = new TimedEntities(mod, null, "entity", groupPath, null);
 			timedGroup.init();
-			group = new EntityGroup(mod, timedGroup, groupPath, EntityType.Entity, null);
+			group = new EntityGroup(mod, null, timedGroup, "entity", groupPath, EntityType.Entity, null);
 			mod.entityGroups.put(groupPath, group);
 		}
 		
@@ -186,7 +191,7 @@ public class TickDynamicConfig {
 		{
 			timedGroup = new TimedEntities(mod, null, "tileentity", groupPath, null);
 			timedGroup.init();
-			group = new EntityGroup(mod, timedGroup, groupPath, EntityType.TileEntity, null);
+			group = new EntityGroup(mod, null, timedGroup, "tileentity", groupPath, EntityType.TileEntity, null);
 			mod.entityGroups.put(groupPath, group);
 		}
 	}

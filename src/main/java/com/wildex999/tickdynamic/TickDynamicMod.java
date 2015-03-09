@@ -45,6 +45,7 @@ import com.wildex999.tickdynamic.timemanager.TimedEntities;
 import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Configuration;
 import cpw.mods.fml.common.DummyModContainer;
@@ -76,6 +77,7 @@ public class TickDynamicMod extends DummyModContainer
     public static final String MODID = "tickDynamic";
     public static final String VERSION = "0.2.0";
     public static boolean debug = false;
+    public static boolean debugTimer = false;
     public static TickDynamicMod tickDynamic;
     
     
@@ -84,6 +86,7 @@ public class TickDynamicMod extends DummyModContainer
     public TimeManager root;
     public boolean enabled;
     public MinecraftServer server;
+    public WorldEventHandler eventHandler;
     
     VersionChecker versionChecker;
     public boolean versionCheckDone;
@@ -175,6 +178,9 @@ public class TickDynamicMod extends DummyModContainer
     	TimedGroup externalTimed = new TimedGroup(this, null, "external", "external");
     	externalTimed.setSliceMax(0);
     	root.addChild(externalTimed);
+    	
+    	eventHandler = new WorldEventHandler(this);
+    	MinecraftForge.EVENT_BUS.register(eventHandler);
     }
     
     
@@ -249,7 +255,7 @@ public class TickDynamicMod extends DummyModContainer
 	     	getTimedGroup("other").endTimer();
 	     	root.endTick(true);
 	     	
-	     	if(debug)
+	     	if(debugTimer)
 	     		System.out.println("Tick time used: " + (root.getTimeUsed()/root.timeMilisecond) + "ms");
 	     	
 	     	//After every world is done ticking, re-balance the time slices according
@@ -331,19 +337,20 @@ public class TickDynamicMod extends DummyModContainer
     }
     
     //Get the named TimedGroup from the given world.
-    //Will create if it doesn't exist.
-    public TimedEntities getWorldTimedGroup(World world, String name) {
+    //canCreate: Whether to create if it does not exist
+    //hasConfig: Whether to create with config entry
+    public TimedEntities getWorldTimedGroup(World world, String name, boolean canCreate, boolean hasConfig) {
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
     	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).append(".").append(name).toString(); 
     	TimedGroup group = getTimedGroup(groupName);
     	
-    	if(group == null || !(group instanceof TimedEntities))
+    	if((group == null || !(group instanceof TimedEntities)) && canCreate)
     	{
     		String baseGroupName = new StringBuilder().append("groups.").append(name).toString();
     		TimedGroup baseGroup = getTimedGroup(baseGroupName);
-    		group = new TimedEntities(this, world, name, groupName, baseGroup);
+    		group = new TimedEntities(this, world, name, hasConfig ? groupName : null, baseGroup);
     		group.init();
     		
     		TimeManager worldManager = getWorldTimeManager(world);
@@ -354,40 +361,46 @@ public class TickDynamicMod extends DummyModContainer
     }
     
     //groupType: The type to make the new Group if it doesn't already exist
-    //Will return existing group even if type doesn't match
-    public EntityGroup getWorldEntityGroup(World world, String name, EntityType groupType) {
+    //Will return existing group even if type doesn't match.
+    //canCreate: Whether to create the group if it does not exist
+    //hasConfig: Whether to create with config entry
+    public EntityGroup getWorldEntityGroup(World world, String name, EntityType groupType, boolean canCreate, boolean hasConfig) {
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
     	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).append(".").append(name).toString();
     	EntityGroup group = getEntityGroup(groupName);
     	
-    	if(group == null) //Create group for world
+    	if(group == null && canCreate) //Create group for world
     	{
     		String baseGroupName = new StringBuilder().append("groups.").append(name).toString();
     		EntityGroup baseGroup = getEntityGroup(baseGroupName);
-    		group = new EntityGroup(this, getWorldTimedGroup(world, name), groupName, groupType, baseGroup);
+    		group = new EntityGroup(this, world, getWorldTimedGroup(world, name, true, hasConfig), name, hasConfig ? groupName : null, groupType, baseGroup);
     		entityGroups.put(groupName, group);
     	}
     	
     	return group;
     }
     
+    public String getWorldPrefix(World world) {
+    	return "worlds.dim" + world.provider.dimensionId;
+    }
+    
     public ConfigCategory getWorldConfigCategory(World world) {
-    	return config.getCategory("worlds.dim" + world.provider.dimensionId);
+    	return config.getCategory(getWorldPrefix(world));
     }
     
     //Get the group for Tile Entities in the given world
     //Will create the world TimeManager and Entity Group if it doesn't exist.
     public EntityGroup getWorldTileEntities(World world) {
-    	EntityGroup teGroup = getWorldEntityGroup(world, "tileentity", EntityType.TileEntity);
+    	EntityGroup teGroup = getWorldEntityGroup(world, "tileentity", EntityType.TileEntity, true, true);
     	return teGroup;
     }
     
     //Get the group for Tile Entities in the given world
     //Will create the world TimeManager and Entity Group if it doesn't exist.
     public EntityGroup getWorldEntities(World world) {
-    	EntityGroup eGroup = getWorldEntityGroup(world, "entity", EntityType.Entity);
+    	EntityGroup eGroup = getWorldEntityGroup(world, "entity", EntityType.Entity, true, true);
     	return eGroup;
     }
     

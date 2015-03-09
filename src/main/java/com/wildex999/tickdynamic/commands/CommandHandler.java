@@ -27,6 +27,7 @@ public class CommandHandler implements ICommand {
 		tps,
 		list,
 		value, //Set/Get
+		check,
 		reload,
 		enabled,
 		help
@@ -83,6 +84,9 @@ public class CommandHandler implements ICommand {
 			return;
 		} else if(args[0].equals("value")) {
 			sender.addChatMessage(new ChatComponentText("Command not yet implemented! Use the config file and reload command for now."));
+			return;
+		} else if(args[0].equals("check")) {
+			sender.addChatMessage(new ChatComponentText("Command not yet implemented! This will allow you to check what group a Tile or Entity belongs to by right clicking it.(And other info, like TPS)"));
 			return;
 		} else if(args[0].equals("help")) {
 			sender.addChatMessage(new ChatComponentText("You can find the documentation over at http://mods.stjerncraft.com/tickdynamic for now."));

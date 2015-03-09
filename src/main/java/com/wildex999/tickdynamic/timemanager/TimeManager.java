@@ -102,7 +102,7 @@ public class TimeManager implements ITimed {
 		if(!mod.enabled)
 			return;
 		
-		if(TickDynamicMod.debug)
+		if(TickDynamicMod.debugTimer)
 			System.out.println(name + ": balanceTime for " + children.size() + " children, with " + timeMax + " to give.");
 		
 		long leftover = 0;
@@ -121,7 +121,7 @@ public class TimeManager implements ITimed {
 			//Special cases: sliceMax == 0. These will not be limited by the timeMax, but will still take time from the others
 			if(timed.getSliceMax() == 0)
 			{
-				if(TickDynamicMod.debug)
+				if(TickDynamicMod.debugTimer)
 					System.out.println(timed.getName() + " reserved: " + timed.getTimeUsedAverage());
 				leftover -= timed.getTimeUsedAverage();
 				it.remove();
@@ -132,7 +132,7 @@ public class TimeManager implements ITimed {
 			{
 				//Special case: Children with sliceMax == 0
 				long reserved = timed.getReservedTime();
-				if(TickDynamicMod.debug)
+				if(TickDynamicMod.debugTimer)
 					System.out.println(timed.getName() + " children Reserved: " + reserved);
 				leftover -= reserved;
 				timed.setTimeMax(reserved);
@@ -147,7 +147,7 @@ public class TimeManager implements ITimed {
 		while(leftover > 0 && childrenLeft.size() > 0)
 		{
 			long before = leftover; //Store the value as we make changes to leftover as we go
-			if(TickDynamicMod.debug)
+			if(TickDynamicMod.debugTimer)
 				System.out.println("Leftover: " + leftover);
 			for(Iterator<ITimed> it = childrenLeft.iterator(); it.hasNext(); )
 			{
@@ -175,7 +175,7 @@ public class TimeManager implements ITimed {
 					allSlices -= child.getSliceMax(); //Remove it's contribution to allSlices so percentages becomes correct
 				}
 				child.setTimeMax(currentMax+1); //Update the max
-				if(TickDynamicMod.debug)
+				if(TickDynamicMod.debugTimer)
 					System.out.println(child.getName() + " currentMax: " + currentMax);
 			}
 			firstPass = false;
@@ -208,7 +208,7 @@ public class TimeManager implements ITimed {
 	//Set the current time allotment for this TimeManager
 	@Override
 	public void setTimeMax(long newTimeMax) {
-		if(TickDynamicMod.debug)
+		if(TickDynamicMod.debugTimer)
 			System.out.println(name + ": setTimeMax: " + newTimeMax);
 		timeMax = newTimeMax;
 	}
