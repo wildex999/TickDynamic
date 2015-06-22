@@ -13,7 +13,7 @@ public class EntityListIterator implements ListIterator<EntityObject> {
 	
 	@Override
 	public void add(EntityObject entityObject) {
-		list.add(entityObject);
+		//Add at current location
 	}
 
 	@Override
