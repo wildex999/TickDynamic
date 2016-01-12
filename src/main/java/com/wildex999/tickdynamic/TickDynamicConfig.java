@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Property;
 
@@ -150,6 +151,8 @@ public class TickDynamicConfig {
 			if(entityGroup == null)
 			{
 				String groupPath = "groups." + group.getName();
+				if(mod.debug)
+					System.out.println("Loading group: " + groupPath);
 				entityGroup = new EntityGroup(mod, null, null, group.getName(), groupPath, EntityType.Entity, null);
 				mod.entityGroups.put(groupPath, entityGroup);
 				if(mod.debug)
@@ -185,6 +188,23 @@ public class TickDynamicConfig {
 			mod.entityGroups.put(groupPath, group);
 		}
 		
+    	//Player group accounts the time used by players(Usually not limited, just used for accounting)
+		groupPath = "groups.players";
+		group = mod.getEntityGroup(groupPath);
+		if(group == null)
+		{
+			//Write new defaults before creating group
+			mod.config.get(groupPath, TimedEntities.configKeySlicesMax, 0); //No limit by default
+			String[] entityClasses = {EntityPlayer.class.getName()};
+			mod.config.get(groupPath, EntityGroup.config_classNames, entityClasses);
+			
+			timedGroup = new TimedEntities(mod, null, "players", groupPath, null);
+			timedGroup.init();
+			
+			group = new EntityGroup(mod, null, timedGroup, "players", groupPath, EntityType.Entity, null);
+			mod.entityGroups.put(groupPath, group);
+		}
+		
 		groupPath = "groups.tileentity";
 		group = mod.getEntityGroup(groupPath);
 		if(group == null)
@@ -194,6 +214,7 @@ public class TickDynamicConfig {
 			group = new EntityGroup(mod, null, timedGroup, "tileentity", groupPath, EntityType.TileEntity, null);
 			mod.entityGroups.put(groupPath, group);
 		}
+		
 	}
 	
 	//Update config mark old config options as Decrepated

@@ -517,6 +517,7 @@ public class CommandList implements ICommand {
 			return;
 		}
 		
+		//TODO: Get World names even if they are not yet loaded
 		for(WorldServer world : mod.server.worldServers)
 		{
 			String name = "NULL";

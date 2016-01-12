@@ -181,6 +181,7 @@ public class TickDynamicMod extends DummyModContainer
     	
     	eventHandler = new WorldEventHandler(this);
     	MinecraftForge.EVENT_BUS.register(eventHandler);
+    	FMLCommonHandler.instance().bus().register(eventHandler);
     }
     
     
@@ -215,7 +216,7 @@ public class TickDynamicMod extends DummyModContainer
     				if(versionData.checkOk)
     				{
 	    				//TODO: Parse versions, split at ',', then split version numbers at '.'
-	    				System.out.println("TickDynamic version check: Latest version = " + versionData.modVersion + " Download URL: http://" + versionData.updateUrl);
+	    				System.out.println("TickDynamic version check: Latest version = " + versionData.modVersion + ". Download URL: http://" + versionData.updateUrl);
     				}
     				else
     					System.out.println("TickDynamic version check: Error while checking latest version!");
@@ -226,8 +227,9 @@ public class TickDynamicMod extends DummyModContainer
     		externalGroup.endTimer();
     		
     		//Set the correct externalGroup time
-    		long overTime = externalGroup.getTimeUsed() - (50*externalGroup.timeMilisecond); //overTime = time used above given tick time
-    		long overTimeTick = (50*externalGroup.timeMilisecond) - (root.getTimeUsed() - externalGroup.getTimeUsed());
+    		long msPerTick = 50;
+    		long overTime = externalGroup.getTimeUsed() - (msPerTick*externalGroup.timeMilisecond); //overTime = time used above given tick time
+    		long overTimeTick = (msPerTick*externalGroup.timeMilisecond) - (root.getTimeUsed() - externalGroup.getTimeUsed());
     		if(overTimeTick < 0)
     			overTime += overTimeTick;
     		/*System.out.println("TickTime: " + ((root.getTimeUsed()-externalGroup.getTimeUsed())/(double)externalGroup.timeMilisecond) + 
@@ -390,14 +392,14 @@ public class TickDynamicMod extends DummyModContainer
     	return config.getCategory(getWorldPrefix(world));
     }
     
-    //Get the group for Tile Entities in the given world
+    //Get the group for Ungrouped Tile Entities in the given world
     //Will create the world TimeManager and Entity Group if it doesn't exist.
     public EntityGroup getWorldTileEntities(World world) {
     	EntityGroup teGroup = getWorldEntityGroup(world, "tileentity", EntityType.TileEntity, true, true);
     	return teGroup;
     }
     
-    //Get the group for Tile Entities in the given world
+    //Get the group for Ungrouped Tile Entities in the given world
     //Will create the world TimeManager and Entity Group if it doesn't exist.
     public EntityGroup getWorldEntities(World world) {
     	EntityGroup eGroup = getWorldEntityGroup(world, "entity", EntityType.Entity, true, true);

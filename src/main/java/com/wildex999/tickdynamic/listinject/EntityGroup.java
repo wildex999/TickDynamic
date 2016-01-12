@@ -60,9 +60,12 @@ public class EntityGroup {
 		
 		this.name = name;
 		this.timedGroup = timedGroup;
+		if(timedGroup != null)
+			timedGroup.setEntityGroup(this);
 		this.configEntry = configEntry;
 		this.groupType = groupType;
 		
+		entities = new ArrayList<EntityObject>();
 		entityEntries = new HashSet<Class>();
 		list = null;
 		
@@ -90,24 +93,24 @@ public class EntityGroup {
 		gotOwnEntries = false;
 		
 		enabled = true;
-		String comment = "Whether this group is enabled or not. If ignored, no Entity/TileEntity will be added to it.";
+		String comment = "Whether this group is enabled or not. If not, no Entity/TileEntity will be added to it.";
 		if(base != null && !mod.config.hasKey(configEntry, config_enabled))
 			enabled = mod.config.get(base.configEntry, config_enabled, enabled, comment).getBoolean();
 		else
-			enabled = mod.config.get(configEntry, config_enabled, enabled).getBoolean();
+			enabled = mod.config.get(configEntry, config_enabled, enabled, comment).getBoolean();
 			
 		comment = "Entity or TileEntity group";
 		if(base != null && !mod.config.hasKey(configEntry, config_groupType))
 			groupType = EntityType.valueOf(mod.config.get(base.configEntry, config_groupType, groupType.toString(), comment).getString());
 		else
-			groupType = EntityType.valueOf(mod.config.get(configEntry, config_groupType, groupType.toString()).getString());
+			groupType = EntityType.valueOf(mod.config.get(configEntry, config_groupType, groupType.toString(), comment).getString());
 			
 		useCorrectedTime = true;
 		comment = "Set the World time to the correct time for the TPS of this group.";
 		if(base != null && !mod.config.hasKey(configEntry, config_useCorrectedTime))
 			useCorrectedTime = mod.config.get(base.configEntry, config_useCorrectedTime, useCorrectedTime, comment).getBoolean();
 		else
-			useCorrectedTime = mod.config.get(configEntry, config_useCorrectedTime, useCorrectedTime).getBoolean();
+			useCorrectedTime = mod.config.get(configEntry, config_useCorrectedTime, useCorrectedTime, comment).getBoolean();
 		
 		String[] entities = {""};
 		comment = "List of Entity/Block names(Ex: Sheep / minecraft:furnace) who are to be included in this group.";
@@ -116,7 +119,7 @@ public class EntityGroup {
 		else
 		{
 			gotOwnEntries = true;
-			entities = mod.config.get(configEntry, config_entityNames, entities).getStringList();
+			entities = mod.config.get(configEntry, config_entityNames, entities, comment).getStringList();
 		}
 		
 		String[] entityClasses = {""};
@@ -126,7 +129,7 @@ public class EntityGroup {
 		else
 		{
 			gotOwnEntries = true;
-			entityClasses = mod.config.get(configEntry, config_classNames, entityClasses).getStringList();
+			entityClasses = mod.config.get(configEntry, config_classNames, entityClasses, comment).getStringList();
 		}
 
 		String[] mods = {""};
@@ -137,7 +140,7 @@ public class EntityGroup {
 		else
 		{
 			gotOwnEntries = true;
-			mods = mod.config.get(configEntry, config_modId, mods).getStringList();
+			mods = mod.config.get(configEntry, config_modId, mods, comment).getStringList();
 		}
 		
 		
@@ -163,9 +166,20 @@ public class EntityGroup {
 			mod.queueSaveConfig();
 	}
 	
-	public void writeConfig() {
+	public void writeConfig(boolean saveFile) {
 		//TODO
 		//TODO: Don't write value if set by base(And not overwritten)
+		
+		if(saveFile)
+			mod.queueSaveConfig();
+	}
+	
+	public String getConfigEntry() {
+		return configEntry;
+	}
+	
+	public String getName() {
+		return name;
 	}
 	
 	public TimedEntities getTimedGroup() {
@@ -181,15 +195,22 @@ public class EntityGroup {
 	public void copy(EntityGroup other, boolean copyEntries) {
 		if(copyEntries)
 			entityEntries.addAll(other.entityEntries);
+		//TODO: More? Assign if false?
 	}
 	
 	public void addEntity(EntityObject entity) {
+		entity.TD_Init(this);
 		entities.add(entity);
 	}
 	
 	public boolean removeEntity(EntityObject entity) {
-		if(entities.remove(entity))
+		int index = entities.indexOf(entity);
+		if(index != -1)
 		{
+			int currentEntityIndex = timedGroup.getCurrentObjectIndex();
+			if(currentEntityIndex > index)
+				timedGroup.setCurrentObjectIndex(currentEntityIndex-1);
+			entities.remove(index);
 			entity.TD_Deinit();
 			return true;
 		}
@@ -278,10 +299,10 @@ public class EntityGroup {
 		Block block = blockRegistry.getRaw(name);
 		if(block == null)
 			return null;
-		
+
 		//Get TileEntities for every metadata
 		TileEntity currentTile;
-		TileEntity prevTile = null;
+		Class prevTile = null;
 		List<Class> tileClassList = new ArrayList<Class>(16);
 		for(byte b = 0; b < 16; b++)
 		{
@@ -297,9 +318,14 @@ public class EntityGroup {
 					currentTile = null;
 				}
 				
-				if(currentTile != null && currentTile != prevTile)
-					tileClassList.add(currentTile.getClass());
-				prevTile = currentTile;
+				Class cls = currentTile.getClass();
+				if(currentTile != null && cls != prevTile)
+				{
+					
+					if(!tileClassList.contains(cls))
+						tileClassList.add(currentTile.getClass());
+				}
+				prevTile = cls;
 			}
 		}
 		
@@ -391,8 +417,6 @@ public class EntityGroup {
 				if(entry.getKey().startsWith(name)) //TODO: Could get false positives. Use Regex instead?
 				{
 					Class value = entry.getValue();
-					if(entityEntries.contains(value))
-						continue;
 					entityEntries.add(value);
 				}
 			}

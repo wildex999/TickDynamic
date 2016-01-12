@@ -5,14 +5,15 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
+import com.wildex999.tickdynamic.listinject.EntityGroup;
 
 import net.minecraft.world.World;
 
 public class TimedEntities extends TimedGroup {
 	protected int currentObjectIndex; //Current index into updating Objects
-	protected int remainingObjects; //Remaining objects for current update cycle
-	protected World world; //World for this group
+	protected int updateCount; //Number of entities to update this tick
 	protected TimedGroup base;
+	protected EntityGroup entityGroup;
 	
 	public static final String configKeyMinimumObjects = "minimumObjects";
 	public static final String configKeyMinimumTPS = "minimumTPS";
@@ -38,9 +39,8 @@ public class TimedEntities extends TimedGroup {
     //If no configuration exits, create a new default.
 	@Override
     public void init() {
-		timeUsed = 0;
-		objectsRun = 0;
 		currentTPS = 0;
+		objectsRun = 0;
 		listTPS = new LinkedList<Double>();
 		setTimeMax(0);
 		
@@ -57,7 +57,7 @@ public class TimedEntities extends TimedGroup {
 		if(base != null && !mod.config.hasKey(configEntry, configKeySlicesMax))
 			sliceMax = mod.config.get(base.configEntry, configKeySlicesMax, sliceMax, comment).getInt();
 		else
-			sliceMax = mod.config.get(configEntry, configKeySlicesMax, sliceMax).getInt();
+			sliceMax = mod.config.get(configEntry, configKeySlicesMax, sliceMax, comment).getInt();
 		setSliceMax(sliceMax);
 		
 		int minimumObjects = mod.defaultEntityMinimumObjects;
@@ -65,7 +65,7 @@ public class TimedEntities extends TimedGroup {
 		if(base != null && !mod.config.hasKey(configEntry, configKeyMinimumObjects))
 			minimumObjects = mod.config.get(base.configEntry, configKeyMinimumObjects, minimumObjects, comment).getInt();
 		else
-			minimumObjects = mod.config.get(configEntry, configKeyMinimumObjects, minimumObjects).getInt();
+			minimumObjects = mod.config.get(configEntry, configKeyMinimumObjects, minimumObjects, comment).getInt();
 		setMinimumObjects(minimumObjects);
 
 		float minimumTPS = mod.defaultEntityMinimumTPS;
@@ -73,7 +73,7 @@ public class TimedEntities extends TimedGroup {
 		if(base != null && !mod.config.hasKey(configEntry, configKeyMinimumTPS))
 			minimumTPS = (float)mod.config.get(base.configEntry, configKeyMinimumTPS, minimumTPS, comment).getDouble();
 		else
-			minimumTPS = (float)mod.config.get(configEntry, configKeyMinimumTPS, minimumTPS).getDouble();
+			minimumTPS = (float)mod.config.get(configEntry, configKeyMinimumTPS, minimumTPS, comment).getDouble();
 		setMinimumTPS(minimumTPS);
 		
 		float minimumTime = mod.defaultEntityMinimumTime;
@@ -81,7 +81,7 @@ public class TimedEntities extends TimedGroup {
 		if(base != null && !mod.config.hasKey(configEntry, configKeyMinimumTime))
 			minimumTime = (float)mod.config.get(base.configEntry, configKeyMinimumTime, minimumTime, comment).getDouble();
 		else
-			minimumTime = (float)mod.config.get(configEntry, configKeyMinimumTime, minimumTime).getDouble();
+			minimumTime = (float)mod.config.get(configEntry, configKeyMinimumTime, minimumTime, comment).getDouble();
 		setMinimumTime(minimumTime);
 		
 		//Save any default values
@@ -138,63 +138,83 @@ public class TimedEntities extends TimedGroup {
 		return (int) Math.ceil(timeMax / timePerObject);
 	}
 
+	public void setEntityGroup(EntityGroup entityGroup) {
+		this.entityGroup = entityGroup;
+	}
+	
+	public EntityGroup getEntityGroup() {
+		return entityGroup;
+	}
+	
 	//Get the current offset into the list of objects(Entities/TileEntities)
 	public int getCurrentObjectIndex() {
 		return currentObjectIndex;
+	}
+	
+	//Update Current index
+	public void setCurrentObjectIndex(int index) {
+		if(index < 0)
+			currentObjectIndex = 0;
+		else
+			currentObjectIndex = index;
 	}
 
 	//Called before the loop for updating objects in the group.
 	//Calculates how many objects to update in this loop.
 	//Return: The starting offset
-	public int startUpdateObjects(World world) {
-		this.world = world;
+	public int startUpdateObjects() {
+		if(entityGroup == null)
+		{
+			if(mod.debug)
+				System.err.println("No EntityGroup for group:" + this.getName());
+			return 0; //No entities to time
+		}
 		
-		if(world.isRemote || !mod.enabled)
-			return 0; //remote world updates should run as normal(Client)
+		int listSize = entityGroup.getEntityCount();
 		
-		List loadedList = getWorldLoadedList(world);
+		if(!mod.enabled)
+			return listSize; //If disabled, update everything
 		
-		remainingObjects = getTargetObjectCount();
-		if(remainingObjects < minimumObjects)
-			remainingObjects = minimumObjects;
-		if(remainingObjects > loadedList.size())
-			remainingObjects = loadedList.size();
+		updateCount = getTargetObjectCount();
+		if(updateCount < minimumObjects)
+			updateCount = minimumObjects;
+		if(updateCount > listSize)
+			updateCount = listSize;
 		
 		//Calculate TPS
-		if(loadedList.size() > 0)
-			currentTPS += (remainingObjects/(double)loadedList.size())*20.0;
+		if(listSize > 0)
+			currentTPS = (updateCount/(double)listSize)*20.0;
 		else
-			currentTPS += 20;
+			currentTPS = 20;
 		
-		if(currentObjectIndex >= loadedList.size())
+		if(currentObjectIndex >= listSize)
 			currentObjectIndex = 0;
 		if(TickDynamicMod.debugTimer)
-			System.out.println("Start ("+ name +"). CurrentObjectIndex: " + currentObjectIndex + " | "
-				+ "RemainingObjects: " + remainingObjects + " of " + loadedList.size());
+			System.out.println("Start ("+ name +"). Update Offset: " + currentObjectIndex + " | "
+				+ "Updating: " + updateCount + " of " + listSize);
 		
 		return currentObjectIndex;
 	}
 	
-	//Called at the end of the update loop for TileEntities.
-	//Keeps track of position, repositions the iterator when needed, and ends the loop when limit has been hit
-	public Iterator updateObjects(Iterator iterator) {
-		if(world.isRemote || !mod.enabled)
-			return iterator; //Run remote world as normal(Client view)
+	//Get number of entities to update this tick.
+	//Count updates when calling startUpdateObjects()
+	public int getUpdateCount() {
+		return updateCount;
+	}
+	
+	//Called at the end of the update for entities
+	//Keeps track of position for next run.
+	//Takes the number of entities that was updated.
+	public void endUpdateObjects(int entitiesUpdated) {
+		if(!mod.enabled || entityGroup == null)
+			return;
 		
-		List loadedList = getWorldLoadedList(world);
+		int listSize = entityGroup.getEntityCount();
+		objectsRun += entitiesUpdated;
+		currentObjectIndex += entitiesUpdated;
 		
-		//Stop if no more remaining
-		if(remainingObjects-- <= 0)
-			return loadedList.listIterator(loadedList.size());
-		
-		currentObjectIndex++;
-		objectsRun++;
-		
-		//Loop around
-		if(!iterator.hasNext())
-			return loadedList.iterator();
-		else
-			return iterator;
+		while(currentObjectIndex >= listSize)
+			currentObjectIndex -= listSize;
 	}
 	
 	@Override
@@ -226,7 +246,7 @@ public class TimedEntities extends TimedGroup {
 		
 		long reservedTPS = 0;
 		if(getMinimumTPS() > 0 && world != null)
-			reservedTPS = (long) ((getWorldLoadedList(world).size() / 20.0) * getMinimumTPS());
+			reservedTPS = (long) ((getEntitiesCount() / 20.0) * getMinimumTPS());
 		
 		long reservedTime = 0;
 		if(getMinimumTime() > 0)
@@ -241,8 +261,9 @@ public class TimedEntities extends TimedGroup {
 		return reserved;
 	}
 
-	//Get the loaded list of Entities/TileEntities
-	public List getWorldLoadedList(World world) {
-		return world.loadedTileEntityList;
+	public int getEntitiesCount() {
+		if(entityGroup == null)
+			return 0;
+		return entityGroup.entities.size();
 	}
 }

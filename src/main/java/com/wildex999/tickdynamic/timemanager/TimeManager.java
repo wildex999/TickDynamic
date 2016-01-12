@@ -105,11 +105,10 @@ public class TimeManager implements ITimed {
 		if(TickDynamicMod.debugTimer)
 			System.out.println(name + ": balanceTime for " + children.size() + " children, with " + timeMax + " to give.");
 		
-		long leftover = 0;
+		long leftover = timeMax;
 		int allSlices = 0;
 		int allSlicesPrev;
 		List<ITimed> childrenLeft = new ArrayList<ITimed>(children);
-		leftover = timeMax;
 		
 		//Set the initial distribution
 		for(Iterator<ITimed> it = childrenLeft.iterator(); it.hasNext(); )
@@ -118,9 +117,11 @@ public class TimeManager implements ITimed {
 			timed.setTimeMax(0);
 			allSlices += timed.getSliceMax();
 			
-			//Special cases: sliceMax == 0. These will not be limited by the timeMax, but will still take time from the others
+			
+			//Special cases: These will not be limited by the timeMax, but will still take time from the others.
 			if(timed.getSliceMax() == 0)
 			{
+				//Special case: self sliceMax == 0.
 				if(TickDynamicMod.debugTimer)
 					System.out.println(timed.getName() + " reserved: " + timed.getTimeUsedAverage());
 				leftover -= timed.getTimeUsedAverage();
@@ -130,7 +131,7 @@ public class TimeManager implements ITimed {
 			}
 			else
 			{
-				//Special case: Children with sliceMax == 0
+				//Special case: Children with sliceMax == 0 or other limitations requiring reservation
 				long reserved = timed.getReservedTime();
 				if(TickDynamicMod.debugTimer)
 					System.out.println(timed.getName() + " children Reserved: " + reserved);

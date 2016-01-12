@@ -35,17 +35,18 @@ import net.minecraftforge.common.config.Property;
  */
 
 public class ListManager implements List<EntityObject> {
-	private World world;
-	private TickDynamicMod mod;
-	private EntityType entityType;
+	protected World world;
+	protected TickDynamicMod mod;
+	protected EntityType entityType;
 	
-	private HashSet<EntityGroup> localGroups; //Groups local to the world this list is part of
-	private Map<Class, EntityGroup> groupMap; //Map of Class to Group
-	private EntityGroup ungroupedEntities;
-	private Queue<EntityObject> queuedEntities; //Entities awaiting grouping, ticked as part of ungroupedEntities
-	private List<EntityPlayer> playerEntities; //List of players that should tick every server tick
+	protected HashSet<EntityGroup> localGroups; //Groups local to the world this list is part of
+	protected Map<Class, EntityGroup> groupMap; //Map of Class to Group
+	protected EntityGroup ungroupedEntities;
+	protected Queue<EntityObject> queuedEntities; //Entities awaiting grouping, ticked as part of ungroupedEntities
+	protected List<EntityPlayer> playerEntities; //List of players that should tick every server tick
 	
-	private int entityCount; //Real count of entities combined in all groups
+	protected int entityCount; //Real count of entities combined in all groups
+	protected int age; //Used to invalidate iterators if list changes
 	
 	public ListManager(World world, TickDynamicMod mod, EntityType type) {
 		this.world = world;
@@ -57,6 +58,7 @@ public class ListManager implements List<EntityObject> {
 		queuedEntities = new ArrayDeque<EntityObject>();
 		
 		entityCount = 0;
+		age = 0;
 		
 		if(mod.debug)
 			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.dimensionId + ")");
@@ -118,7 +120,19 @@ public class ListManager implements List<EntityObject> {
 		{
 			Set<Class> entries = group.getEntityEntries();
 			for(Class entityClass : entries)
+			{
+				if(mod.debug)
+				{
+					String localPath = group.getConfigEntry();
+					if(localPath == null)
+						localPath = "-";
+					String parentPath = "None";
+					if(group.base != null)	
+						parentPath = group.base.getConfigEntry();
+					System.out.println("Mapping: " + entityClass + " -> " + localPath + "(Global: " + parentPath + ")");
+				}
 				groupMap.put(entityClass, group);
+			}
 		}
 		
 		if(mod.debug)
@@ -132,19 +146,36 @@ public class ListManager implements List<EntityObject> {
 	}
 	
 	//Assign the given EntityObject to an appropriate group
-	public void assignToGroup(Object object) {
-		if(entityType == EntityType.Entity)
+	public void assignToGroup(EntityObject object) {
+		if(object == null)
+			return;
+		
+		EntityGroup group = object.TD_entityGroup;
+		if(group != null)
+			group.removeEntity(object);
+		
+		group = groupMap.get(object.getClass());
+		if(group == null)
 		{
-			if(object instanceof EntityPlayer) //EntityPlayer always tick independent of Groups and Limits
-			{
-				playerEntities.add((EntityPlayer)object);
-				return;
-			}
+			if(mod.debug)
+				System.out.println("Adding Entity: " + object.getClass() + " -> Ungrouped");
+			ungroupedEntities.addEntity(object);
 		}
-		
-		EntityObject entityObject = (EntityObject)object; //Assert: Should Always be an EntityObject
-		
-		//Use groupMap
+		else
+		{
+			if(mod.debug)
+				System.out.println("Adding Entity: " + object.getClass() + " -> " + group.getName());
+			group.addEntity(object);
+		}
+	}
+	
+	public int getAge() {
+		return age;
+	}
+	
+	//Get a new iterator for the local groups
+	public Iterator<EntityGroup> getGroupIterator() {
+		return localGroups.iterator();
 	}
 	
 	@Override
@@ -152,17 +183,20 @@ public class ListManager implements List<EntityObject> {
 		if(element.TD_entityGroup != null)
 			return false;
 		
-		element.TD_Init(ungroupedEntities);
-		queuedEntities.add(element); //Add to queue for later insertion into a group
+		//TODO: Queue and add over time
+		//ungroupedEntities.addEntity(element);
+		//queuedEntities.add(element); //Add to queue for later insertion into a group
+		assignToGroup(element);
 		
 		entityCount++;
+		//age++; //We allow adding without aging, as it does not disrupt the iterators
 		
 		return true;
 	}
 
 	@Override
 	public void add(int index, EntityObject element) {
-		add(element);
+		add(element); //We ignore index(Not used in Minecraft, and doesn't make sense for us)
 	}
 
 	@Override
@@ -184,13 +218,14 @@ public class ListManager implements List<EntityObject> {
 			group.clearEntities();
 		}
 		entityCount = 0;
+		age++;
 	}
 
 	@Override
-	public boolean contains(Object o) {
-		if(!(o instanceof EntityObject))
+	public boolean contains(Object object) {
+		if(!(object instanceof EntityObject))
 			return false;
-		EntityObject entityObject = (EntityObject)o;
+		EntityObject entityObject = (EntityObject)object;
 		if(entityObject.TD_entityGroup == null || entityObject.TD_entityGroup.list != this)
 			return false;
 			
@@ -210,7 +245,7 @@ public class ListManager implements List<EntityObject> {
 	@Override
 	public EntityObject get(int index) {
 		if(index >= entityCount || index < 0)
-			throw new ArrayIndexOutOfBoundsException("Tried to get index: " + index + ", but size is: " + entityCount);
+			throw new IndexOutOfBoundsException("Tried to get index: " + index + ", but size is: " + entityCount);
 		//Walk through groups, adding their size to index, until we reach the group with the index
 		//Note: localGroups's order is not guaranteed to remain the same after a change.
 		int offset = 0;
@@ -219,7 +254,7 @@ public class ListManager implements List<EntityObject> {
 				return group.entities.get(index - offset);
 			offset += group.getEntityCount();
 		}
-		throw new ArrayIndexOutOfBoundsException("Reached end of groups before finding index: " + index);
+		throw new IndexOutOfBoundsException("Reached end of groups before finding index: " + index);
 	}
 
 	@Override
@@ -258,16 +293,15 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public boolean remove(Object o) {
-		if(!(o instanceof EntityObject))
-			return false;
-		EntityObject entityObject = (EntityObject)o;
-		if(entityObject.TD_entityGroup == null || entityObject.TD_entityGroup.list != this)
+	public boolean remove(Object object) {
+		if(!contains(object))
 			return false;
 		
+		EntityObject entityObject = (EntityObject)object;
 		if(entityObject.TD_entityGroup.removeEntity(entityObject))
 		{
 			entityCount--;
+			age++;
 			return true;
 		}
 		return false;
@@ -276,7 +310,10 @@ public class ListManager implements List<EntityObject> {
 	@Override
 	public EntityObject remove(int index) {
 		if(mod.debug)
-			System.out.println("Debug Warning: Using slow remove of objects!");
+		{
+			Thread.currentThread().dumpStack();
+			System.out.println("Debug Warning: Using slow remove of objects(Remove by index)!");
+		}
 		EntityObject entityObject = get(index);
 		if(remove(entityObject))
 			return entityObject;

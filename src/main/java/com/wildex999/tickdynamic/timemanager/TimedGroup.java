@@ -7,8 +7,8 @@ import net.minecraft.world.World;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
 
-//TODO: timeUsed should use average for the last second or so, to handle a smaler subset of objects
-//which uses a large amount of time.
+//Base group implementing some standard features
+//Not used directly.
 
 public class TimedGroup implements ITimed {
 	protected int sliceMax; //Used by parent to rebalance timeMax

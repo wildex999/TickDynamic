@@ -34,7 +34,7 @@ public interface ITimed {
 	public long getTimeUsedAverage(); 
 	public long getTimeUsedLast();  //Time used last tick
 	
-	//Return the time reserved(Itself + Any children with sliceMax == 0)
+	//Return the time reserved(Itself + Any children with sliceMax == 0 or any other limit which requires a reservation)
 	public long getReservedTime();
 		
 	//Called at the beginning of a new tick to prepare for new time capture etc.
