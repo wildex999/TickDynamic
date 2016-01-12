@@ -1,5 +1,6 @@
 package com.wildex999.tickdynamic.listinject;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,7 @@ import com.wildex999.tickdynamic.timemanager.TimedGroup.GroupType;
 import cpw.mods.fml.common.registry.EntityRegistry;
 import cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry;
 import cpw.mods.fml.common.registry.GameData;
+import cpw.mods.fml.common.registry.GameRegistry;
 
 public class EntityGroup {
 	
@@ -52,6 +54,19 @@ public class EntityGroup {
 	
 	private boolean useCorrectedTime;
 	private EntityType groupType;
+	
+	private static Map<String, Class> tileNameToClassMap;
+	
+	static {
+		try {
+			Field registryField = TileEntity.class.getField("nameToClassMap");
+			registryField.setAccessible(true);
+			tileNameToClassMap = (Map<String, Class>)registryField.get(null);
+		} catch(Exception e) {
+			System.err.println(e);
+			System.err.println("Unable to load TileEntities from Mods, class variable(nameToClassMap) lookup failed. The code might be obfuscated!");
+		}
+	}
 	
 	//If base is not null, copy the values from it before reading the config
 	public EntityGroup(TickDynamicMod mod, World world, TimedEntities timedGroup, String name, String configEntry, EntityType groupType, EntityGroup base) {
@@ -399,6 +414,10 @@ public class EntityGroup {
 			return;
 		if(names.length == 1 && names[0].length() == 0)
 			return;
+		
+		for(String name : names) {
+			loadTilesByModName(name);
+		}
 	}
 	
 	private void loadEntitiesByModNames(String[] names) {
@@ -409,25 +428,36 @@ public class EntityGroup {
 		
 		for(String name : names)
 		{
-			Set<Entry<String, Class>> entries = EntityList.stringToClassMapping.entrySet();
-			Iterator<Entry<String, Class>> it = entries.iterator();
-			while(it.hasNext())
-			{
-				Entry<String, Class> entry = it.next();
-				if(entry.getKey().startsWith(name)) //TODO: Could get false positives. Use Regex instead?
-				{
-					Class value = entry.getValue();
-					entityEntries.add(value);
-				}
-			}
+			List<Class> classList = loadEntitiesByModName(name);
+			entityEntries.addAll(classList);
 		}
 	}
 	
 	private List<Class> loadTilesByModName(String name) {
-		return null;
+		if(tileNameToClassMap == null)
+			return null;
+		return loadClassesFromNamePrefix(tileNameToClassMap, name);
 	}
 	
 	private List<Class> loadEntitiesByModName(String name) {
-		return null;
+		return loadClassesFromNamePrefix(EntityList.stringToClassMapping, name);
+	}
+	
+	private List<Class> loadClassesFromNamePrefix(Map<String, Class> nameToClassMap, String name) {
+		List<Class> classList = new ArrayList<Class>();
+		
+		Set<Entry<String, Class>> entries = nameToClassMap.entrySet();
+		Iterator<Entry<String, Class>> it = entries.iterator();
+		while(it.hasNext())
+		{
+			Entry<String, Class> entry = it.next();
+			if(entry.getKey().startsWith(name)) //TODO: Could get false positives. Use Regex instead?
+			{
+				Class value = entry.getValue();
+				classList.add(value);
+			}
+		}
+		
+		return classList;
 	}
 }
