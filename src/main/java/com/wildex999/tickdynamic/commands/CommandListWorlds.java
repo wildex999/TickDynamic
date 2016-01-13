@@ -20,18 +20,12 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.WorldServer;
 
-public class CommandList implements ICommand {
+public class CommandListWorlds implements ICommand {
 
 	private TickDynamicMod mod;
-	private String[] commands = {"dimnames", "time", "entitiesrun", "tps", "maxslices", "minimumentities"};
-	String commandList;
 	
 	private String formatCode = "\u00a7"; //Ignore this when counting length
-	private String rc = " "; //RepeatChar
-	private int maxWorldNameWidth; //Max width of the world name
-	private int maxWorldWidth; //World data width
-	private int maxTileWidth;
-	private int maxEntityWidth;
+	private int borderWidth;
 	private boolean gotWorldData;
 	
 	private int rowsPerPage = 6;
@@ -45,25 +39,20 @@ public class CommandList implements ICommand {
 		public String entityData;
 	}
 	
-	public CommandList(TickDynamicMod mod) {
+	public CommandListWorlds(TickDynamicMod mod) {
 		this.mod = mod;
 		gotWorldData = false;
-		
-		StringBuilder commandListBuilder = new StringBuilder();
-		for(String command : commands)
-			commandListBuilder.append(command).append(", ");
-		commandListBuilder.delete(commandListBuilder.length()-2, commandListBuilder.length());
-		commandList = commandListBuilder.toString();
+		borderWidth = 50;
 	}
 	
 	@Override
 	public String getCommandName() {
-		return "tickdynamic list";
+		return "tickdynamic worldList";
 	}
 
 	@Override
 	public String getCommandUsage(ICommandSender sender) {
-		return "tickdynamic list [" + commandList + "] [page]";
+		return "tickdynamic worldList [page]";
 	}
 
 	@Override
@@ -73,14 +62,83 @@ public class CommandList implements ICommand {
 
 	@Override
 	public void processCommand(ICommandSender sender, String[] args) {
-		if(args.length == 1)
+		if(args.length > 1 && args[1].equals("help"))
 		{
 			sender.addChatMessage(new ChatComponentText("Usage: " + getCommandUsage(sender)));
 			return;
 		}
 		
+		StringBuilder outputBuilder = new StringBuilder();
+		DecimalFormat decimalFormat = new DecimalFormat("#.00");
+		
+		currentPage = 1;
+		maxPages = 0;
+		
+		//Get current page if set
+		if(args.length == 3)
+		{
+			try {
+			currentPage = Integer.parseInt(args[2]);
+			if(currentPage <= 0)
+			{
+				sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Page number must be 1 and up, got: " + args[2]));
+				currentPage = 1;
+			}
+			} catch(Exception e) {
+				sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Expected a page number, got: " + args[2]));
+				return;
+			}
+		}
+		
+		//Write header
+		writeHeader(outputBuilder);
+		
+		int listSize = mod.server.worldServers.length;
+		if(listSize > rowsPerPage)
+			maxPages = (int)Math.ceil(listSize/(float)rowsPerPage);
+		else
+			maxPages = 1;
+		
+		if(currentPage > maxPages)
+			currentPage = maxPages;
+		
+		//Write data
+		int toSkip = (currentPage-1) * rowsPerPage;
+		for(WorldServer world : mod.server.worldServers) {
+			//Skip for pages
+			if(toSkip-- > 0)
+				continue;
+			
+			TimeManager worldManager = mod.getWorldTimeManager(world);
+			if(world == null || worldManager == null)
+				continue;
+			
+			outputBuilder.append(EnumChatFormatting.GRAY + "| ").append(EnumChatFormatting.RESET + world.provider.getDimensionName());
+			String usedTime = decimalFormat.format(worldManager.getTimeUsedAverage()/(double)TimeManager.timeMilisecond);
+			String maxTime = decimalFormat.format(worldManager.getTimeMax()/(double)TimeManager.timeMilisecond);
+			outputBuilder.append(EnumChatFormatting.GRAY + " || ").append(EnumChatFormatting.RESET).append(usedTime).append("/").append(maxTime);
+			outputBuilder.append(EnumChatFormatting.GRAY + " || ").append(EnumChatFormatting.RESET).append(worldManager.getSliceMax()).append("\n");
+			
+		/*	outputBuilder.append(EnumChatFormatting.GRAY + "| ").append(EnumChatFormatting.RESET + data.worldName)
+			.append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxWorldNameWidth-getVisibleLength(data.worldName)));
+		if(gotWorldData)
+			outputBuilder.append("|| ").append(EnumChatFormatting.RESET + data.worldData)
+				.append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxWorldWidth-getVisibleLength(data.worldData)));
+		outputBuilder.append("|| ").append(EnumChatFormatting.RESET + data.tileData)
+			.append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxTileWidth-getVisibleLength(data.tileData)));
+		outputBuilder.append("|| ").append(EnumChatFormatting.RESET + data.entityData)
+			.append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxEntityWidth-getVisibleLength(data.entityData)));
+		outputBuilder.append(" |\n");*/
+			
+		}
+		
+		writeFooter(outputBuilder);
+		
+		splitAndSend(sender, outputBuilder);
+		
+		
 		//Clear per command
-		maxWorldNameWidth = 5;
+		/*maxWorldNameWidth = 5;
 		maxWorldWidth = 10;
 		maxTileWidth = 12;
 		maxEntityWidth = 8;
@@ -165,43 +223,41 @@ public class CommandList implements ICommand {
 		}
 		
 		//Write footer
-		writeFooter(outputBuilder, args[1]);
+		writeFooter(outputBuilder, args[1]);*/
 		
 		
-		splitAndSend(sender, outputBuilder);
+		//splitAndSend(sender, outputBuilder);
 	}
 	
-	public void writeHeader(StringBuilder builder, String command) {
-		if(command.equals("time"))
-			builder.append(EnumChatFormatting.GREEN + "Time used / Time given (In Milliseconds)\n");
-		else if(command.equals("tps"))
-			builder.append("Server Avg. TPS: ").append(CommandHandler.getTPSFormatted(mod)).append("\n");
-		else if(command.equals("entitiesrun"))
-			builder.append(EnumChatFormatting.GREEN + "Average number of Entities that update per tick\n");
-		else if(command.equals("maxslices"))
-			builder.append(EnumChatFormatting.GREEN + "Slices for the different worlds and groups from config\n");
-		else if(command.equals("minimumentities"))
-			builder.append(EnumChatFormatting.GREEN + "Minimum number of entities to run, from config\n");
+	public void writeHeader(StringBuilder builder) {
+		builder.append(EnumChatFormatting.GREEN + "Worlds list with time. Usage: tickdynamic worldList [page]\n");
 		
-		builder.append(EnumChatFormatting.GRAY + "+" + StringUtils.repeat("=", (maxWorldNameWidth+maxWorldWidth+maxTileWidth+maxEntityWidth+15)/2) + "+\n");
-		builder.append(EnumChatFormatting.GRAY + "| ").append(EnumChatFormatting.RESET + "World").append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxWorldNameWidth-5));
+		builder.append(EnumChatFormatting.GRAY + "+" + StringUtils.repeat("=", borderWidth) + "+\n");
+		builder.append(EnumChatFormatting.GRAY + "| ").append(EnumChatFormatting.GOLD + "World").append(EnumChatFormatting.GRAY);
 		
-		if(gotWorldData)
+		builder.append(" || " ).append(EnumChatFormatting.GOLD + "Time(Used/Allocated) miliseconds").append(EnumChatFormatting.GRAY);
+		//builder.append(" || " ).append(EnumChatFormatting.RESET + "TPS").append(EnumChatFormatting.GRAY);
+		//builder.append(" || " ).append(EnumChatFormatting.RESET + "EntitiesRun").append(EnumChatFormatting.GRAY);
+		builder.append(" || " ).append(EnumChatFormatting.GOLD + "MaxSlices").append(EnumChatFormatting.GRAY);
+		builder.append("\n");
+		//builder.append(" || " ).append(EnumChatFormatting.RESET + "MinEntities").append(EnumChatFormatting.GRAY).append("\n");
+		
+		/*if(gotWorldData)
 			builder.append(" || ").append(EnumChatFormatting.RESET + "World Data").append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxWorldWidth-10));
 		
 		builder.append(" || ").append(EnumChatFormatting.RESET + "TileEntities").append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxTileWidth-12))
 			.append(" || ").append(EnumChatFormatting.RESET + "Entities").append(EnumChatFormatting.GRAY + StringUtils.repeat(rc, maxEntityWidth-8))
-			.append(" |\n");
+			.append(" |\n");*/
 	}
 	
-	public void writeFooter(StringBuilder builder, String command) {
+	public void writeFooter(StringBuilder builder) {
 		if(maxPages == 0)
-			builder.append(EnumChatFormatting.GRAY + "+" + StringUtils.repeat("=", (maxWorldNameWidth+maxWorldWidth+maxTileWidth+maxEntityWidth+15)/2) + "+\n");
+			builder.append(EnumChatFormatting.GRAY + "+" + StringUtils.repeat("=", borderWidth) + "+\n");
 		else
 		{
 			String pagesStr = EnumChatFormatting.GREEN + "Page " + currentPage + "/" + maxPages;
 			int pagesLength = getVisibleLength(pagesStr);
-			int otherLength = ((maxWorldNameWidth+maxWorldWidth+maxTileWidth+maxEntityWidth+15)/2) - pagesLength;
+			int otherLength = borderWidth - pagesLength;
 			builder.append(EnumChatFormatting.GRAY + "+" + StringUtils.repeat("=", otherLength/2));
 			builder.append(pagesStr);
 			builder.append(EnumChatFormatting.GRAY + StringUtils.repeat("=", otherLength/2) + "+\n");
@@ -234,7 +290,7 @@ public class CommandList implements ICommand {
 			}
 			else
 				newData.worldName = "NULL";
-			
+			 
 			//World time data
 			newData.worldData = decimalFormat.format(manager.getTimeUsedAverage()/(double)manager.timeMilisecond) + " / " 
 			+ decimalFormat.format(manager.getTimeMax()/(double)manager.timeMilisecond);
@@ -250,7 +306,7 @@ public class CommandList implements ICommand {
 					+ decimalFormat.format(timedEntity.getTimeMax()/(double)timedEntity.timeMilisecond);
 			
 			//Max length update
-			int length = getVisibleLength(newData.worldName); //Ignore formating
+			/*int length = getVisibleLength(newData.worldName); //Ignore formating
 			if(maxWorldNameWidth < length)
 				maxWorldNameWidth = length;
 			length = getVisibleLength(newData.worldData);
@@ -262,7 +318,7 @@ public class CommandList implements ICommand {
 			length = getVisibleLength(newData.entityData);
 			if(maxEntityWidth < length)
 				maxEntityWidth = length;
-			
+			*/
 			dataList.add(newData);
 		}
 		
@@ -343,14 +399,14 @@ public class CommandList implements ICommand {
 			
 			//Max length update
 			int length = getVisibleLength(newData.worldName);
-			if(maxWorldNameWidth < length)
+			/*if(maxWorldNameWidth < length)
 				maxWorldNameWidth = length;
 			length = getVisibleLength(newData.tileData);
 			if(maxTileWidth < length)
 				maxTileWidth = length;
 			length = getVisibleLength(newData.entityData);
 			if(maxEntityWidth < length)
-				maxEntityWidth = length;
+				maxEntityWidth = length;*/
 			
 			dataList.add(newData);
 		}
@@ -391,14 +447,14 @@ public class CommandList implements ICommand {
 			
 			//Max length update
 			int length = getVisibleLength(newData.worldName);
-			if(maxWorldNameWidth < length)
+			/*if(maxWorldNameWidth < length)
 				maxWorldNameWidth = length;
 			length = getVisibleLength(newData.tileData);
 			if(maxTileWidth < length)
 				maxTileWidth = length;
 			length = getVisibleLength(newData.entityData);
 			if(maxEntityWidth < length)
-				maxEntityWidth = length;
+				maxEntityWidth = length;*/
 			
 			dataList.add(newData);
 		}
@@ -444,7 +500,7 @@ public class CommandList implements ICommand {
 			
 			//Max length update
 			int length = getVisibleLength(newData.worldName);
-			if(maxWorldNameWidth < length)
+			/*if(maxWorldNameWidth < length)
 				maxWorldNameWidth = length;
 			length = getVisibleLength(newData.worldData);
 			if(maxWorldWidth < length)
@@ -454,7 +510,7 @@ public class CommandList implements ICommand {
 				maxTileWidth = length;
 			length = getVisibleLength(newData.entityData);
 			if(maxEntityWidth < length)
-				maxEntityWidth = length;
+				maxEntityWidth = length;*/
 			
 			dataList.add(newData);
 		}
@@ -495,14 +551,14 @@ public class CommandList implements ICommand {
 			
 			//Max length update
 			int length = getVisibleLength(newData.worldName);
-			if(maxWorldNameWidth < length)
+			/*if(maxWorldNameWidth < length)
 				maxWorldNameWidth = length;
 			length = getVisibleLength(newData.tileData);
 			if(maxTileWidth < length)
 				maxTileWidth = length;
 			length = getVisibleLength(newData.entityData);
 			if(maxEntityWidth < length)
-				maxEntityWidth = length;
+				maxEntityWidth = length;*/
 			
 			dataList.add(newData);
 		}
@@ -551,7 +607,7 @@ public class CommandList implements ICommand {
 
 	@Override
 	public List addTabCompletionOptions(ICommandSender sender, String[] args) {
-		if(args.length == 2)
+		/*if(args.length == 2)
 		{
 			List listOut = new LinkedList();
 			String lastArg = args[args.length-1];
@@ -562,7 +618,7 @@ public class CommandList implements ICommand {
 			}
 			
 			return listOut;
-		}
+		}*/
 		
 		return null;
 	}

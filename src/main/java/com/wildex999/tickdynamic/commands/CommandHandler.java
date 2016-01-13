@@ -25,9 +25,9 @@ public class CommandHandler implements ICommand {
 	
 	public enum SubCommands {
 		tps,
-		list,
+		listworlds,
 		value, //Set/Get
-		check,
+		identify,
 		reload,
 		enabled,
 		help
@@ -42,7 +42,7 @@ public class CommandHandler implements ICommand {
 		
 		subCommandHandlers = new HashMap<String, ICommand>();
 		subCommandHandlers.put("reload", new CommandReload(mod));
-		subCommandHandlers.put("list", new CommandList(mod));
+		subCommandHandlers.put("listworlds", new CommandListWorlds(mod));
 		subCommandHandlers.put("enabled", new CommandEnabled(mod));
 		
 		StringBuilder builderSubCommands = new StringBuilder();
@@ -85,11 +85,11 @@ public class CommandHandler implements ICommand {
 		} else if(args[0].equals("value")) {
 			sender.addChatMessage(new ChatComponentText("Command not yet implemented! Use the config file and reload command for now."));
 			return;
-		} else if(args[0].equals("check")) {
+		} else if(args[0].equals("identify")) {
 			sender.addChatMessage(new ChatComponentText("Command not yet implemented! This will allow you to check what group a Tile or Entity belongs to by right clicking it.(And other info, like TPS)"));
 			return;
 		} else if(args[0].equals("help")) {
-			sender.addChatMessage(new ChatComponentText("You can find the documentation over at http://mods.stjerncraft.com/tickdynamic for now."));
+			sender.addChatMessage(new ChatComponentText("You can find the documentation over at http://mods.stjerncraft.com/tickdynamic"));
 			return;
 		}
 		

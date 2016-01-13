@@ -384,6 +384,31 @@ public class TickDynamicMod extends DummyModContainer
     	return group;
     }
     
+    //Get all EntityGroups for the given world
+    public List<EntityGroup> getWorldEntityGroups(World world) {
+    	List<EntityGroup> groups = new ArrayList<EntityGroup>();
+    	
+    	String remote = "";
+    	int offsetCount = 10;
+    	if(world.isRemote)
+    	{
+    		remote = "client_";
+    		offsetCount += 7;
+    	}
+    	
+    	String groupNamePrefix = new StringBuilder().append(world.provider.dimensionId).append(".").toString();
+    	//TODO: Don't compare the first 10 characters, as they are always the same(Have offset)
+    	for(Map.Entry<String, EntityGroup> entry : entityGroups.entrySet()) {
+    		String groupName = entry.getKey();
+    		if(!groupName.startsWith(groupNamePrefix, offsetCount))
+    			continue;
+    		
+    		groups.add(entry.getValue());
+    	}
+    	
+    	return groups;
+    }
+    
     public String getWorldPrefix(World world) {
     	return "worlds.dim" + world.provider.dimensionId;
     }
