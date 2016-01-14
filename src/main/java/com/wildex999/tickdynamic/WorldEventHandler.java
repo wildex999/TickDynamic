@@ -34,15 +34,16 @@ public class WorldEventHandler {
 	
     @SubscribeEvent
     public void worldTickEvent(WorldTickEvent event) {
-		ListManagerEntities entityList = entityListManager.get(event.world);
-		if(entityList == null)
+		Profiler profiler = event.world.theProfiler;
+		if(!(profiler instanceof CustomProfiler))
 			return;
+		CustomProfiler customProfiler = (CustomProfiler)profiler;
     	
     	if(event.phase == Phase.START) {
-    		entityList.tickStarted = true;
+    		customProfiler.stage = CustomProfiler.Stage.BeforeLoop;
     	}
     	else {
-    		entityList.tickStarted = false;
+    		customProfiler.stage = CustomProfiler.Stage.None;
     	}
     }
 	

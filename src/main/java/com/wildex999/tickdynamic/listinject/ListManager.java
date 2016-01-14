@@ -269,15 +269,15 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public Iterator<EntityObject> iterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public int lastIndexOf(Object o) {
 		//TODO: Actually implement this, even if it would be a slow method
 		throw new NotImplementedException("lastIndexOf is not implemented in TickDynamic's List implementation!");
+	}
+	
+	@Override
+	public Iterator<EntityObject> iterator() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

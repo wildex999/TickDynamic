@@ -14,85 +14,52 @@ import net.minecraft.world.World;
 
 public class ListManagerEntities extends ListManager {
 
-	//Flags to check when Entity update loops start
-	public boolean tickStarted; //Flag 1
-	public boolean flagRemoveAll; //Flag 2
 	private boolean updateStarted;
-	private boolean doIterate; //Only the first get after size() should continue the iteration
-	private List unloadList; //Used to check when we should start updating
-	
-	private int loopCount;
 	private Iterator<EntityObject> entityIterator;
 	private EntityObject lastObj;
 	
+	private CustomProfiler profiler;
+	
 	public ListManagerEntities(World world, TickDynamicMod mod) {
 		super(world, mod, EntityType.Entity);
-		try {
-			Field unloadedField = net.minecraft.world.World.class.getDeclaredField("unloadedEntityList");
-			unloadedField.setAccessible(true);
-			unloadList = (List) unloadedField.get(world);
-		} catch(Exception e) {
-			System.err.println(e);
-			throw new RuntimeException("TickDynamic failed to get field 'unloadedEntityList'. There might be some obfuscation problem.");
-		}
+		profiler = (CustomProfiler)world.theProfiler;
 	}
 	
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		if(tickStarted && c == unloadList)
-			flagRemoveAll = true;
-		else
-			flagRemoveAll = false;
-		
-		return super.removeAll(c);
-	}
 	
 	@Override
 	public int size() {
-		if(!tickStarted || !flagRemoveAll)
+		if(profiler.stage == CustomProfiler.Stage.None || profiler.stage == CustomProfiler.Stage.InTick || profiler.stage == CustomProfiler.Stage.BeforeLoop)
 			return super.size();
-		
+
 		if(!updateStarted) {
 			updateStarted = true;
 			
 			entityIterator = new EntityIteratorTimed(this, this.getAge());
-			loopCount = 0; //Start the counter
 		}
 		
 		//Verify we have a next element to move on to
 		if(!entityIterator.hasNext())
 		{
 			updateStarted = false;
-			flagRemoveAll = false;
-			tickStarted = false; //Make sure we don't accidentally start it somewhere else during TileEntity ticking
-			
+			profiler.stage = CustomProfiler.Stage.None;
 			return 0; //Should end
 		}
-		
-		doIterate = true;
-		//Return one larger number than previously until our iterator has no more elements
-		return ++loopCount;
+
+		return super.size();
 	}
 	
 	@Override
 	public EntityObject get(int index) {
-		if(!updateStarted) {
-			return super.get(index);
-		}
-		
-		if(!doIterate)
+		if(!updateStarted || profiler.stage == CustomProfiler.Stage.InTick)
 			return super.get(index);
 		
 		lastObj = entityIterator.next();
-		doIterate = false; //Any get's before the next size() is not part of the timed
-		//System.out.println("Get: " + loopCount);
-		
 		return lastObj;
 	}
 	
 	@Override
 	public EntityObject remove(int index) {
-		if(!updateStarted)
+		if(!updateStarted || profiler.stage != CustomProfiler.Stage.InRemove)
 			return super.remove(index);
 		
 		//Fast remove the current Entity
