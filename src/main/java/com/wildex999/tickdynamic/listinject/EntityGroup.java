@@ -73,7 +73,10 @@ public class EntityGroup {
 		if(timedGroup == null && base != null)
 			System.err.println("Assertion failed: Created EntityGroup with a null TimedGroup!");
 		
-		this.name = name;
+		if(name != null)
+			this.name = name;
+		else
+			this.name = "-";
 		this.timedGroup = timedGroup;
 		if(timedGroup != null)
 			timedGroup.setEntityGroup(this);

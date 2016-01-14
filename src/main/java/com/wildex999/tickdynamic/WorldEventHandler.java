@@ -1,13 +1,16 @@
 package com.wildex999.tickdynamic;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 
+import com.wildex999.tickdynamic.listinject.CustomProfiler;
 import com.wildex999.tickdynamic.listinject.EntityObject;
 import com.wildex999.tickdynamic.listinject.EntityType;
 import com.wildex999.tickdynamic.listinject.ListManager;
 import com.wildex999.tickdynamic.listinject.ListManagerEntities;
 
+import net.minecraft.profiler.Profiler;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.event.world.WorldEvent;
@@ -49,6 +52,15 @@ public class WorldEventHandler {
     	if(event.world.isRemote)
     		return;
     	
+    	//Inject Custom Profiler for watching Entity ticking
+    	try {
+    		setCustomProfiler(event.world, new CustomProfiler(event.world.theProfiler));
+    	} catch(Exception e) {
+    		System.err.println("Unable to set TickDynamic World profiler! World will not be using TickDynamic: " + event.world);
+    		System.err.println(e);
+    		return; //Do not add TickDynamic to world
+    	}
+    	
     	//Register our own Entity List manager, copying over any existing Entities
     	System.out.println("World load: " + event.world.provider.getDimensionName());
     	ListManagerEntities entityManager = new ListManagerEntities(event.world, mod);
@@ -65,7 +77,6 @@ public class WorldEventHandler {
     		entityManager.add(obj);
     	}
     	
-
     }
     
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -77,5 +88,11 @@ public class WorldEventHandler {
     	//Make sure we unload our own Entity List manager to avoid memory leak
     	//Unload local groups, clear entities etc.
     	//TODO: World Unload
+    }
+    
+    private void setCustomProfiler(World world, CustomProfiler profiler) throws Exception {
+    	Field profilerField = World.class.getField("theProfiler");
+    	profilerField.setAccessible(true);
+    	profilerField.set(world, profiler);
     }
 }

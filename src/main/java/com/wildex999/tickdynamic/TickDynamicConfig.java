@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Property;
 
@@ -195,7 +196,7 @@ public class TickDynamicConfig {
 		{
 			//Write new defaults before creating group
 			mod.config.get(groupPath, TimedEntities.configKeySlicesMax, 0); //No limit by default
-			String[] entityClasses = {EntityPlayer.class.getName()};
+			String[] entityClasses = {EntityPlayer.class.getName(), EntityPlayerMP.class.getName()};
 			mod.config.get(groupPath, EntityGroup.config_classNames, entityClasses);
 			
 			timedGroup = new TimedEntities(mod, null, "players", groupPath, null);

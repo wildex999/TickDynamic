@@ -26,7 +26,7 @@ public class CommandHandler implements ICommand {
 	public enum SubCommands {
 		tps,
 		listworlds,
-		value, //Set/Get
+		world,
 		identify,
 		reload,
 		enabled,
@@ -43,6 +43,7 @@ public class CommandHandler implements ICommand {
 		subCommandHandlers = new HashMap<String, ICommand>();
 		subCommandHandlers.put("reload", new CommandReload(mod));
 		subCommandHandlers.put("listworlds", new CommandListWorlds(mod));
+		subCommandHandlers.put("world", new CommandWorld(mod));
 		subCommandHandlers.put("enabled", new CommandEnabled(mod));
 		
 		StringBuilder builderSubCommands = new StringBuilder();
@@ -81,9 +82,6 @@ public class CommandHandler implements ICommand {
 		{
 			
 			sender.addChatMessage(new ChatComponentText("Average TPS: " + getTPSFormatted(mod) + " TPS"));
-			return;
-		} else if(args[0].equals("value")) {
-			sender.addChatMessage(new ChatComponentText("Command not yet implemented! Use the config file and reload command for now."));
 			return;
 		} else if(args[0].equals("identify")) {
 			sender.addChatMessage(new ChatComponentText("Command not yet implemented! This will allow you to check what group a Tile or Entity belongs to by right clicking it.(And other info, like TPS)"));
