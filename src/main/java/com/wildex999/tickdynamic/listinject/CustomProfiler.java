@@ -22,7 +22,7 @@ public class CustomProfiler extends Profiler {
 		InRemove //Removing dead Entity
 	}
 	
-	private final Profiler original;
+	public final Profiler original;
 	public Stage stage;
 	public boolean reachedTile; //Set to true when starting to tick TileEntities
 	
@@ -33,6 +33,12 @@ public class CustomProfiler extends Profiler {
 		this.original = originalProfiler;
 		this.stage = Stage.None;
 		this.reachedTile = false;
+	}
+
+	//Set new Stage, with the ability to log the change for debugging
+	public void setStage(Stage stage) {
+		//System.out.println("Stage change: " + this.stage + " -> " + stage);
+		this.stage = stage;
 	}
 	
 	@Override
@@ -45,18 +51,18 @@ public class CustomProfiler extends Profiler {
 			
 		case BeforeLoop:
 			if(sectionName.equals("regular"))
-				stage = Stage.InLoop;
+				setStage(Stage.InLoop);
 			break;
 			
 		case InLoop:
 			if(sectionName.equals("tick")) {
-				stage = Stage.InTick;
+				setStage(Stage.InTick);
 				depthCount = 0;
 			} else if(sectionName.equals("remove")) {
-				stage = Stage.InRemove;
+				setStage(Stage.InRemove);
 				depthCount = 0;
 			} else if(sectionName.equals("blockEntities")) {
-				stage = Stage.None; //Done ticking Entities
+				setStage(Stage.None); //Done ticking Entities
 				reachedTile = true;
 			}
 			break;
@@ -75,11 +81,11 @@ public class CustomProfiler extends Profiler {
 		switch(stage) {
 		case InTick:
 			if(depthCount-- == 0)
-				stage = Stage.InLoop;
+				setStage(Stage.InLoop);
 			break;
 		case InRemove:
 			if(depthCount-- == 0)
-				stage = Stage.InLoop;
+				setStage(Stage.InLoop);
 			break;
 		default:
 			break;

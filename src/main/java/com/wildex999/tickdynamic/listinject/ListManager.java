@@ -88,8 +88,6 @@ public class ListManager implements List<EntityObject> {
 				System.out.println("Load local group: " + name);
 			localGroups.add(localGroup);
 			localGroup.list = this;
-			//GameData.getBlockRegistry()
-			//EntityRegistry.registerModEntity(entityClass, entityName, id, mod, trackingRange, updateFrequency, sendsVelocityUpdates)
 		}
 		
 		//Add a copy of any remaining global groups
@@ -222,6 +220,10 @@ public class ListManager implements List<EntityObject> {
 		}
 		entityCount = 0;
 		age++;
+		
+		if(mod.debug)
+            System.out.println("Cleared all loaded object of the type " + entityType + " from world: " + (world == null ? "Unknown" : world.provider.getDimensionName()));
+		
 	}
 
 	@Override
