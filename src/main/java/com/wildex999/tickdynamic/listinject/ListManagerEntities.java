@@ -41,7 +41,6 @@ public class ListManagerEntities extends ListManager {
 		if(!entityIterator.hasNext())
 		{
 			updateStarted = false;
-			profiler.stage = CustomProfiler.Stage.None;
 			return 0; //Should end
 		}
 

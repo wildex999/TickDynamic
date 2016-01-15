@@ -24,6 +24,7 @@ public class CustomProfiler extends Profiler {
 	
 	private final Profiler original;
 	public Stage stage;
+	public boolean reachedTile; //Set to true when starting to tick TileEntities
 	
 	
 	private int depthCount; //start and end can be called inside Entity tick, we have to track it
@@ -31,6 +32,7 @@ public class CustomProfiler extends Profiler {
 	public CustomProfiler(Profiler originalProfiler) {
 		this.original = originalProfiler;
 		this.stage = Stage.None;
+		this.reachedTile = false;
 	}
 	
 	@Override
@@ -55,6 +57,7 @@ public class CustomProfiler extends Profiler {
 				depthCount = 0;
 			} else if(sectionName.equals("blockEntities")) {
 				stage = Stage.None; //Done ticking Entities
+				reachedTile = true;
 			}
 			break;
 			

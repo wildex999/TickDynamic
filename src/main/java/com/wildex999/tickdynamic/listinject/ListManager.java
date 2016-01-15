@@ -45,11 +45,14 @@ public class ListManager implements List<EntityObject> {
 	protected Queue<EntityObject> queuedEntities; //Entities awaiting grouping, ticked as part of ungroupedEntities
 	protected List<EntityPlayer> playerEntities; //List of players that should tick every server tick
 	
+	protected CustomProfiler customProfiler;
+	
 	protected int entityCount; //Real count of entities combined in all groups
 	protected int age; //Used to invalidate iterators if list changes
 	
 	public ListManager(World world, TickDynamicMod mod, EntityType type) {
 		this.world = world;
+		this.customProfiler = (CustomProfiler)world.theProfiler;
 		this.mod = mod;
 		entityType = type;
 		localGroups = new HashSet<EntityGroup>();
@@ -274,22 +277,26 @@ public class ListManager implements List<EntityObject> {
 		throw new NotImplementedException("lastIndexOf is not implemented in TickDynamic's List implementation!");
 	}
 	
+	//Return correct Iterator depending on current stage
 	@Override
 	public Iterator<EntityObject> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+		if(customProfiler.reachedTile)
+		{
+			customProfiler.reachedTile = false; //Reset flag
+			return new EntityIteratorTimed(this, getAge());
+		}
+		
+		return new EntityIterator(this, getAge());
 	}
 
 	@Override
 	public ListIterator<EntityObject> listIterator() {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotImplementedException("listIterator is not implemented in TickDynamic's List implementation!");
 	}
 
 	@Override
 	public ListIterator<EntityObject> listIterator(int index) {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotImplementedException("listIterator(index) is not implemented in TickDynamic's List implementation!");
 	}
 
 	@Override

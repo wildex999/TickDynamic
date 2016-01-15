@@ -3,10 +3,10 @@ package com.wildex999.tickdynamic.listinject;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
-public class EntityListIterator implements ListIterator<EntityObject> {
-
+public class EntityIterator implements Iterator<EntityObject> {
+	
 	private ListManager list;
 	private int currentAge; //Used to verify if iterator is still valid(Concurrent modification)
 	
@@ -15,21 +15,14 @@ public class EntityListIterator implements ListIterator<EntityObject> {
 	private Iterator<EntityGroup> groupIterator;
 	private List<EntityObject> entityList;
 	private int currentIndex;
-	private int globalIndex;
 	
-	public EntityListIterator(ListManager list) {
+	public EntityIterator(ListManager list, int age) {
 		this.list = list;
-		this.currentAge = list.getAge();
+		this.currentAge = age;
 		this.groupIterator = list.getGroupIterator();
 		this.currentIndex = 0;
-		this.globalIndex = 0;
 	}
 	
-	@Override
-	public void add(EntityObject entityObject) {
-		//Add at current location
-	}
-
 	@Override
 	public boolean hasNext() {
 		if(currentAge != list.age)
@@ -51,47 +44,32 @@ public class EntityListIterator implements ListIterator<EntityObject> {
 		
 		return true;
 	}
-
-	@Override
-	public boolean hasPrevious() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
+	
 	@Override
 	public EntityObject next() {
-		// TODO Auto-generated method stub
-		return null;
+		if(currentAge != list.age)
+			throw new ConcurrentModificationException("List modified before going to next entry");
+		if(!hasNext())
+			throw new NoSuchElementException();
+		
+		currentObject = entityList.get(currentIndex++);
+		
+		return currentObject;
 	}
-
-	@Override
-	public int nextIndex() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public EntityObject previous() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int previousIndex() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
+	
 	@Override
 	public void remove() {
-		// TODO Auto-generated method stub
+		if(currentAge != list.age)
+			throw new ConcurrentModificationException("List modified before going to next entry");
+		if(currentObject == null)
+			return;
 		
-	}
-
-	@Override
-	public void set(EntityObject arg0) {
-		// TODO Auto-generated method stub
+		//Remove while maintaining the Iterator integrity and position
+		list.remove(currentObject);
+		currentAge++;
+		currentIndex--;
 		
+		if(currentIndex < 0) //If we removed the first element
+			currentIndex = 0;
 	}
-
 }

@@ -78,6 +78,15 @@ public class WorldEventHandler {
     		entityManager.add(obj);
     	}
     	
+    	//Tiles
+    	if(mod.debug)
+    		System.out.println("Adding " + event.world.loadedTileEntityList.size() + " existing TileEntities.");
+    	oldList = event.world.loadedTileEntityList;
+    	event.world.loadedTileEntityList = tileEntityManager;
+    	for(EntityObject obj : oldList) {
+    		tileEntityManager.add(obj);
+    	}
+    	
     }
     
     @SubscribeEvent(priority = EventPriority.HIGHEST)
