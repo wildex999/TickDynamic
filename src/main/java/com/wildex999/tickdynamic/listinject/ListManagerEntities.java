@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 public class ListManagerEntities extends ListManager {
 
 	private boolean updateStarted;
-	private Iterator<EntityObject> entityIterator;
+	private EntityIteratorTimed entityIterator;
 	private EntityObject lastObj;
 	
 	private CustomProfiler profiler;
@@ -25,6 +25,11 @@ public class ListManagerEntities extends ListManager {
 		profiler = (CustomProfiler)world.theProfiler;
 	}
 	
+	public void stopUpdate() {
+		updateStarted = false;
+		if(entityIterator != null)
+			entityIterator.endUpdate();
+	}
 	
 	@Override
 	public int size() {

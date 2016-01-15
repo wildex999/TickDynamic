@@ -241,6 +241,10 @@ public class EntityGroup {
 		for(EntityObject entity : entities)
 			entity.TD_Deinit();
 		entities.clear();
+		
+		if(mod.debug)
+			System.out.println("Cleared all loaded object of the type " + groupType + " from world: " + (world == null ? "Unknown" : world.provider.getDimensionName()));
+		
 	}
 	
 	public int getEntityCount() {

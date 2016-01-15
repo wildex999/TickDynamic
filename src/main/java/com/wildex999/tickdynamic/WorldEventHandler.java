@@ -55,7 +55,7 @@ public class WorldEventHandler {
     	
     	//Inject Custom Profiler for watching Entity ticking
     	try {
-    		setCustomProfiler(event.world, new CustomProfiler(event.world.theProfiler));
+    		setCustomProfiler(event.world, new CustomProfiler(event.world.theProfiler, event.world));
     	} catch(Exception e) {
     		System.err.println("Unable to set TickDynamic World profiler! World will not be using TickDynamic: " + event.world);
     		System.err.println(e);
@@ -67,8 +67,8 @@ public class WorldEventHandler {
     		System.out.println("World load: " + event.world.provider.getDimensionName());
     	ListManagerEntities entityManager = new ListManagerEntities(event.world, mod);
     	entityListManager.put(event.world, entityManager);
-    	ListManager tileEntityManager = new ListManager(event.world, mod, EntityType.TileEntity);
-    	tileListManager.put(event.world, tileEntityManager);
+    	/*ListManager tileEntityManager = new ListManager(event.world, mod, EntityType.TileEntity);
+    	tileListManager.put(event.world, tileEntityManager);*/
     	
     	//Overwrite existing lists, copying any loaded Entities
     	if(mod.debug)
@@ -80,13 +80,13 @@ public class WorldEventHandler {
     	}
     	
     	//Tiles
-    	if(mod.debug)
+    	/*if(mod.debug)
     		System.out.println("Adding " + event.world.loadedTileEntityList.size() + " existing TileEntities.");
     	oldList = event.world.loadedTileEntityList;
     	event.world.loadedTileEntityList = tileEntityManager;
     	for(EntityObject obj : oldList) {
     		tileEntityManager.add(obj);
-    	}
+    	}*/
     	
     }
     

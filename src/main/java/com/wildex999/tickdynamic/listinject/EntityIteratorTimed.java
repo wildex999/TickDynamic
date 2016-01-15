@@ -34,6 +34,23 @@ public class EntityIteratorTimed implements Iterator<EntityObject> {
 		this.startedTimer = false;
 	}
 	
+	//End update loop for this tick prematurely.
+	//If called prematurely this can cause groups to be skipped!
+	public void endUpdate() {
+		endGroup();
+		currentGroup = null;
+		remainingCount = 0;
+		startedTimer = false;
+	}
+	
+	private void endGroup() {
+		if(startedTimer && currentGroup != null)
+		{
+			currentGroup.timedGroup.endUpdateObjects(updateCount);
+			currentGroup.timedGroup.endTimer();
+		}
+	}
+	
 	@Override
 	public boolean hasNext() {
 		if(currentAge != list.age)
@@ -42,11 +59,7 @@ public class EntityIteratorTimed implements Iterator<EntityObject> {
 			return true;
 		
 		//Find next group and end timer on current group
-		if(startedTimer && currentGroup != null)
-		{
-			currentGroup.timedGroup.endUpdateObjects(updateCount);
-			currentGroup.timedGroup.endTimer();
-		}
+		endGroup();
 		
 		updateCount = 0;
 		currentGroup = null;

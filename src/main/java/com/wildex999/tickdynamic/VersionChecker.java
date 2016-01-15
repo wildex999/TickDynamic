@@ -41,7 +41,7 @@ public class VersionChecker implements Runnable {
 		String url = "http://mods.stjerncraft.com:8080";
 		String query = "v=error";
 		try {
-			query = String.format("mv=%s&v=%s&sv=%s", URLEncoder.encode("forge1.7.10", encoding), 
+			query = String.format("mv=%s&v=%s&sv=%s", URLEncoder.encode("kcauldron1.7.10", encoding), 
 					URLEncoder.encode(TickDynamicMod.VERSION, encoding), URLEncoder.encode(ForgeVersion.getVersion(), encoding));
 			URLConnection connection = new URL(url + "/?" + query).openConnection();
 			connection.setRequestProperty("Accept-Charset", encoding);

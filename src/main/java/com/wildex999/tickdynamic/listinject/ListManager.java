@@ -306,7 +306,7 @@ public class ListManager implements List<EntityObject> {
 		
 		EntityObject entityObject = (EntityObject)object;
 		if(entityObject.TD_entityGroup.removeEntity(entityObject))
-		{
+		{			
 			entityCount--;
 			age++;
 			return true;
