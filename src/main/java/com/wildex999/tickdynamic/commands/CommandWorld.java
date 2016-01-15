@@ -106,16 +106,6 @@ public class CommandWorld implements ICommand {
 		
 		writeHeader(outputBuilder);
 		
-		int extraCount = 2; //External and Other
-		int listSize = mod.server.worldServers.length + extraCount;
-		if(listSize > rowsPerPage)
-			maxPages = (int)Math.ceil(listSize/(float)rowsPerPage);
-		else
-			maxPages = 1;
-		
-		if(currentPage > maxPages)
-			currentPage = maxPages;
-		
 		//Get groups from world
 		List<EntityGroup> groups = new ArrayList<EntityGroup>();
 		if(world.loadedEntityList instanceof ListManager)
@@ -133,12 +123,24 @@ public class CommandWorld implements ICommand {
 			}
 		});
 		
+		int listSize = groups.size();
+		if(listSize > rowsPerPage)
+			maxPages = (int)Math.ceil(listSize/(float)rowsPerPage);
+		else
+			maxPages = 1;
+		
+		if(currentPage > maxPages)
+			currentPage = maxPages;
+		
 		//Write stats
 		int toSkip = (currentPage-1) * rowsPerPage;
+		int toSend = rowsPerPage;
 		for(EntityGroup group : groups) {
 			//Skip for pages
 			if(toSkip-- > 0)
 				continue;
+			if(toSend-- <= 0)
+				break;
 			
 			writeGroup(outputBuilder, group);
 		}

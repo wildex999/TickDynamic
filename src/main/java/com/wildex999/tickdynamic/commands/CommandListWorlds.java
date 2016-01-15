@@ -28,7 +28,7 @@ public class CommandListWorlds implements ICommand {
 	private int borderWidth;
 	private boolean gotWorldData;
 	
-	private int rowsPerPage = 6;
+	private int rowsPerPage;
 	private int currentPage;
 	private int maxPages;
 	
@@ -43,6 +43,7 @@ public class CommandListWorlds implements ICommand {
 		this.mod = mod;
 		gotWorldData = false;
 		borderWidth = 50;
+		rowsPerPage = 6;
 	}
 	
 	@Override
@@ -78,14 +79,14 @@ public class CommandListWorlds implements ICommand {
 		if(args.length == 2)
 		{
 			try {
-			currentPage = Integer.parseInt(args[2]);
+			currentPage = Integer.parseInt(args[1]);
 			if(currentPage <= 0)
 			{
-				sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Page number must be 1 and up, got: " + args[2]));
+				sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Page number must be 1 and up, got: " + args[1]));
 				currentPage = 1;
 			}
 			} catch(Exception e) {
-				sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Expected a page number, got: " + args[2]));
+				sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Expected a page number, got: " + args[1]));
 				return;
 			}
 		}
@@ -105,10 +106,13 @@ public class CommandListWorlds implements ICommand {
 		
 		//Write data
 		int toSkip = (currentPage-1) * rowsPerPage;
+		int toSend = rowsPerPage;
 		for(WorldServer world : mod.server.worldServers) {
 			//Skip for pages
 			if(toSkip-- > 0)
 				continue;
+			if(toSend-- <= 0)
+				break;
 			
 			TimeManager worldManager = mod.getWorldTimeManager(world);
 			if(world == null || worldManager == null)
