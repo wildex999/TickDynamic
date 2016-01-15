@@ -68,6 +68,7 @@ sourceSets {
     main {
         java {
             exclude 'net/**'
+            exclude 'org/**'
        }
    }
 }
