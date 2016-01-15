@@ -25,6 +25,7 @@ import cpw.mods.fml.common.registry.EntityRegistry;
 import cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry;
 import cpw.mods.fml.common.registry.GameData;
 import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 
 public class EntityGroup {
 	
@@ -59,9 +60,10 @@ public class EntityGroup {
 	
 	static {
 		try {
-			Field registryField = TileEntity.class.getField("nameToClassMap");
-			registryField.setAccessible(true);
-			tileNameToClassMap = (Map<String, Class>)registryField.get(null);
+			tileNameToClassMap = ReflectionHelper.getPrivateValue(TileEntity.class, null, "nameToClassMap", "field_145855_i");
+			//Field registryField = TileEntity.class.getField("nameToClassMap");
+			//registryField.setAccessible(true);
+			//tileNameToClassMap = (Map<String, Class>)registryField.get(null);
 		} catch(Exception e) {
 			System.err.println(e);
 			System.err.println("Unable to load TileEntities from Mods, class variable(nameToClassMap) lookup failed. The code might be obfuscated!");

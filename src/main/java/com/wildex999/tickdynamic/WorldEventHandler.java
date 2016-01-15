@@ -1,6 +1,5 @@
 package com.wildex999.tickdynamic;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 
@@ -19,6 +18,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 
 public class WorldEventHandler {
 	public TickDynamicMod mod;
@@ -63,7 +63,8 @@ public class WorldEventHandler {
     	}
     	
     	//Register our own Entity List manager, copying over any existing Entities
-    	System.out.println("World load: " + event.world.provider.getDimensionName());
+    	if(mod.debug)
+    		System.out.println("World load: " + event.world.provider.getDimensionName());
     	ListManagerEntities entityManager = new ListManagerEntities(event.world, mod);
     	entityListManager.put(event.world, entityManager);
     	ListManager tileEntityManager = new ListManager(event.world, mod, EntityType.TileEntity);
@@ -101,8 +102,6 @@ public class WorldEventHandler {
     }
     
     private void setCustomProfiler(World world, CustomProfiler profiler) throws Exception {
-    	Field profilerField = World.class.getField("theProfiler");
-    	profilerField.setAccessible(true);
-    	profilerField.set(world, profiler);
+    	ReflectionHelper.setPrivateValue(World.class, world, profiler, "theProfiler", "field_72984_F");
     }
 }

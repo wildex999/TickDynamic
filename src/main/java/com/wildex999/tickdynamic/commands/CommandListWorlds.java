@@ -75,7 +75,7 @@ public class CommandListWorlds implements ICommand {
 		maxPages = 0;
 		
 		//Get current page if set
-		if(args.length == 3)
+		if(args.length == 2)
 		{
 			try {
 			currentPage = Integer.parseInt(args[2]);

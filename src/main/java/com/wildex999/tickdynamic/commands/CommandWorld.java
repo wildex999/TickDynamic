@@ -2,6 +2,7 @@ package com.wildex999.tickdynamic.commands;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -124,7 +125,7 @@ public class CommandWorld implements ICommand {
 		
 		//Sort the groups, so we don't just have Entities followed by TileEntities
 		//TODO: More sorting options
-		groups.sort(new Comparator(){
+		Collections.sort(groups, new Comparator(){
 			public int compare(Object o1, Object o2) {
 				EntityGroup group1 = (EntityGroup)o1;
 				EntityGroup group2 = (EntityGroup)o2;
