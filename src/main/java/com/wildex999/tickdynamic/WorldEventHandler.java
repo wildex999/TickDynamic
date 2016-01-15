@@ -40,10 +40,10 @@ public class WorldEventHandler {
 		CustomProfiler customProfiler = (CustomProfiler)profiler;
     	
     	if(event.phase == Phase.START) {
-    		customProfiler.stage = CustomProfiler.Stage.BeforeLoop;
+    		customProfiler.setStage(CustomProfiler.Stage.BeforeLoop);
     	}
     	else {
-    		customProfiler.stage = CustomProfiler.Stage.None;
+    		customProfiler.setStage(CustomProfiler.Stage.None);
     	}
     }
 	
@@ -93,15 +93,33 @@ public class WorldEventHandler {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onDimensionUnload(WorldEvent.Unload event)
     {
-    	if(event.world.isRemote)
+    	if(event.world == null || event.world.isRemote)
     		return;
     	
-    	//Make sure we unload our own Entity List manager to avoid memory leak
-    	//Unload local groups, clear entities etc.
-    	//TODO: World Unload
+    	if(mod.debug)
+    		System.out.println("TickDynamic unloading injected lists for world: " + event.world.provider.getDimensionName());
+    	
+    	try {
+        	CustomProfiler customProfiler = (CustomProfiler)event.world.theProfiler;
+			setCustomProfiler(event.world, customProfiler.original);
+		} catch (Exception e) {
+			System.err.println("Failed to revert World Profiler to original");
+			e.printStackTrace();
+		}
+    	
+    	//Remove all references to the lists and EntityObjects contained(Groups will remain loaded in TickDynamic)
+    	ListManager list = entityListManager.remove(event.world);
+    	if(list != null)
+    		list.clear();
+    	
+    	list = tileListManager.remove(event.world);
+    	if(list != null)
+    		list.clear();
+
+    	//TODO: Verify we have no hanging handles to world, especially through the groups
     }
     
-    private void setCustomProfiler(World world, CustomProfiler profiler) throws Exception {
+    private void setCustomProfiler(World world, Profiler profiler) throws Exception {
     	ReflectionHelper.setPrivateValue(World.class, world, profiler, "theProfiler", "field_72984_F");
     }
 }

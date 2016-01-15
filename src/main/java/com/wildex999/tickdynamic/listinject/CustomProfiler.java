@@ -23,7 +23,7 @@ public class CustomProfiler extends Profiler {
 		InRemove //Removing dead Entity
 	}
 	
-	private final Profiler original;
+	public final Profiler original;
 	private ListManagerEntities entitiesList;
 	private final World world;
 	private final Thread thread; //Used to ignore calls outside main thread
@@ -41,6 +41,8 @@ public class CustomProfiler extends Profiler {
 		this.world = world;
 		this.thread = Thread.currentThread();
 	}
+
+	//Set new Stage, with the ability to log the change for debugging
 	
 	public void setStage(Stage stage) {
 		//System.out.println("Stage change: " + this.stage + " -> " + stage);
