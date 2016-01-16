@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import net.minecraft.entity.Entity;
+
 /*
  * Iterator will continue from each group at the given offset and only iterate for the given number
  * of Entities as dictated by the time manager.

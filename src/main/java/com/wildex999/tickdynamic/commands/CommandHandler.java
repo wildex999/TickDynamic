@@ -9,8 +9,10 @@ import java.util.Map;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
 
+import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatStyle;
 import net.minecraft.util.EnumChatFormatting;
@@ -71,7 +73,7 @@ public class CommandHandler implements ICommand {
 	}
 
 	@Override
-	public void processCommand(ICommandSender sender, String[] args) {
+	public void processCommand(ICommandSender sender, String[] args) throws CommandException {
 		if(args.length == 0)
 		{
 			sender.addChatMessage(new ChatComponentText("Usage: " + getCommandUsage(sender)));
@@ -108,7 +110,7 @@ public class CommandHandler implements ICommand {
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender sender, String[] args) {
+	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
 		if(args.length == 1)
 		{
 			List listOut = new LinkedList();
@@ -128,7 +130,7 @@ public class CommandHandler implements ICommand {
 			ICommand subHandler = subCommandHandlers.get(args[0]);
 			if(subHandler == null)
 				return null;
-			return subHandler.addTabCompletionOptions(sender, args);
+			return subHandler.addTabCompletionOptions(sender, args, pos);
 		}
 	}
 
@@ -139,7 +141,7 @@ public class CommandHandler implements ICommand {
 	}
 	
 	@Override
-	public int compareTo(Object arg0) {
+	public int compareTo(ICommand o) {
 		return 0;
 	}
 	

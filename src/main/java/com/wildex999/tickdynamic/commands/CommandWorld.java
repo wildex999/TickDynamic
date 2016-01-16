@@ -17,6 +17,7 @@ import com.wildex999.tickdynamic.timemanager.TimedEntities;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
@@ -158,7 +159,7 @@ public class CommandWorld implements ICommand {
 
 	private void writeHeader(StringBuilder builder) {
 		builder.append(EnumChatFormatting.GREEN + "Groups for world: ").append(EnumChatFormatting.RESET + world.provider.getDimensionName()).
-				append("(DIM: ").append(world.provider.dimensionId).append(")\n");
+				append("(DIM: ").append(world.provider.getDimensionId()).append(")\n");
 		
 		builder.append(EnumChatFormatting.GRAY + "+" + StringUtils.repeat("=", borderWidth) + "+\n");
 		builder.append(EnumChatFormatting.GRAY + "| ").append(EnumChatFormatting.GOLD + "Group").append(EnumChatFormatting.GRAY);
@@ -233,8 +234,7 @@ public class CommandWorld implements ICommand {
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender p_71516_1_,
-			String[] p_71516_2_) {
+	public List addTabCompletionOptions(ICommandSender sender,String[] args, BlockPos pos) {
 		return null;
 	}
 
@@ -244,7 +244,7 @@ public class CommandWorld implements ICommand {
 	}
 	
 	@Override
-	public int compareTo(Object arg0) {
+	public int compareTo(ICommand o) {
 		return 0;
 	}
 

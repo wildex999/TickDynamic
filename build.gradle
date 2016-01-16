@@ -87,7 +87,7 @@ processResources
 sourceSets {
     main {
         java {
-            exclude 'net/**'
+            //exclude 'net/**'
        }
    }
 }
@@ -97,4 +97,6 @@ jar {
         attributes 'FMLCorePlugin': 'com.wildex999.tickdynamic.LoadingPlugin',
                     'FMLCorePluginContainsFMLMod': 'true'
     }
+    
+    exclude 'net/**'
 }

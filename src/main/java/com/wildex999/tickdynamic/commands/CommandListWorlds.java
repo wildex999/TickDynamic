@@ -16,6 +16,7 @@ import com.wildex999.tickdynamic.timemanager.TimedEntities;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.WorldServer;
@@ -195,7 +196,7 @@ public class CommandListWorlds implements ICommand {
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender sender, String[] args) {		
+	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {		
 		return null;
 	}
 
@@ -206,7 +207,7 @@ public class CommandListWorlds implements ICommand {
 	}
 	
 	@Override
-	public int compareTo(Object o) {
+	public int compareTo(ICommand o) {
 		// TODO Auto-generated method stub
 		return 0;
 	}

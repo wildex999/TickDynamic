@@ -1,6 +1,5 @@
 package com.wildex999.tickdynamic.listinject;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,23 +8,20 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import net.minecraft.block.Block;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityList;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
-import net.minecraftforge.common.config.Property;
-
 import com.wildex999.tickdynamic.TickDynamicMod;
 import com.wildex999.tickdynamic.timemanager.TimedEntities;
-import com.wildex999.tickdynamic.timemanager.TimedGroup;
-import com.wildex999.tickdynamic.timemanager.TimedGroup.GroupType;
 
-import cpw.mods.fml.common.registry.EntityRegistry;
-import cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry;
-import cpw.mods.fml.common.registry.GameData;
-import cpw.mods.fml.common.registry.GameRegistry;
-import cpw.mods.fml.relauncher.ReflectionHelper;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
+import net.minecraft.init.Blocks;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.common.registry.FMLControlledNamespacedRegistry;
+import net.minecraftforge.fml.common.registry.GameData;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class EntityGroup {
 	
@@ -316,8 +312,8 @@ public class EntityGroup {
 	//A single name block might have multiple TileEntities(For the different metadata)
 	private List<Class> loadTilesByName(String name) {
 		FMLControlledNamespacedRegistry<Block> blockRegistry = GameData.getBlockRegistry();
-		Block block = blockRegistry.getRaw(name);
-		if(block == null)
+		Block block = blockRegistry.getObject(new ResourceLocation(name));
+		if(block == Blocks.air)
 			return null;
 
 		//Get TileEntities for every metadata
@@ -326,11 +322,12 @@ public class EntityGroup {
 		List<Class> tileClassList = new ArrayList<Class>(16);
 		for(byte b = 0; b < 16; b++)
 		{
-			if(block.hasTileEntity(b))
+			IBlockState state = block.getStateFromMeta(b);
+			if(block.hasTileEntity(state))
 			{
 				//Might throw an exception while creating TileEntity, especially at initial load of global groups
 				try {
-					currentTile = block.createTileEntity(world, b);
+					currentTile = block.createTileEntity(world, state);
 				} catch(Exception e)
 				{
 					if(mod.debug)
@@ -448,14 +445,14 @@ public class EntityGroup {
 		return loadClassesFromNamePrefix(EntityList.stringToClassMapping, name);
 	}
 	
-	private List<Class> loadClassesFromNamePrefix(Map<String, Class> nameToClassMap, String name) {
+	private List<Class> loadClassesFromNamePrefix(Map<String, ? extends Class> nameToClassMap, String name) {
 		List<Class> classList = new ArrayList<Class>();
 		
-		Set<Entry<String, Class>> entries = nameToClassMap.entrySet();
-		Iterator<Entry<String, Class>> it = entries.iterator();
+		Set<?> entries = nameToClassMap.entrySet();
+		Iterator<Entry<String, ? extends Class>> it = (Iterator<Entry<String, ? extends Class>>) entries.iterator();
 		while(it.hasNext())
 		{
-			Entry<String, Class> entry = it.next();
+			Entry<String, ? extends Class> entry = it.next();
 			if(entry.getKey().startsWith(name)) //TODO: Could get false positives. Use Regex instead?
 			{
 				Class value = entry.getValue();

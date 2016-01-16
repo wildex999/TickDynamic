@@ -1,68 +1,40 @@
 package com.wildex999.tickdynamic;
 
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
-import java.util.zip.ZipFile;
-
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.VarInsnNode;
-import org.objectweb.asm.util.ASMifier;
-import org.objectweb.asm.util.TraceClassVisitor;
-import org.objectweb.asm.*;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.common.util.concurrent.AtomicDouble;
-import com.wildex999.patcher.PatchParser;
 import com.wildex999.tickdynamic.commands.CommandHandler;
 import com.wildex999.tickdynamic.listinject.EntityGroup;
 import com.wildex999.tickdynamic.listinject.EntityType;
 import com.wildex999.tickdynamic.timemanager.ITimed;
 import com.wildex999.tickdynamic.timemanager.TimeManager;
-import com.wildex999.tickdynamic.timemanager.TimedGroup;
-import com.wildex999.tickdynamic.timemanager.TimedGroup.GroupType;
 import com.wildex999.tickdynamic.timemanager.TimedEntities;
+import com.wildex999.tickdynamic.timemanager.TimedGroup;
 
-import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.Configuration;
-import cpw.mods.fml.common.DummyModContainer;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.LoadController;
-import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.ModMetadata;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.event.FMLServerStartingEvent;
-import cpw.mods.fml.common.event.FMLServerStoppingEvent;
-import cpw.mods.fml.common.eventhandler.EventPriority;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Phase;
-import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
-import cpw.mods.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.common.DummyModContainer;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.LoadController;
+import net.minecraftforge.fml.common.ModMetadata;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
+import net.minecraftforge.fml.common.gameevent.TickEvent.ServerTickEvent;
 
 //Written by: Wildex999 ( wildex999@gmail.com )
 
@@ -320,7 +292,7 @@ public class TickDynamicMod extends DummyModContainer
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
-    	String managerName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).toString();
+    	String managerName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId()).toString();
     	TimeManager worldManager = getTimeManager(managerName);
     	
     	if(worldManager == null)
@@ -345,7 +317,7 @@ public class TickDynamicMod extends DummyModContainer
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
-    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).append(".").append(name).toString(); 
+    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId()).append(".").append(name).toString(); 
     	TimedGroup group = getTimedGroup(groupName);
     	
     	if((group == null || !(group instanceof TimedEntities)) && canCreate)
@@ -370,7 +342,7 @@ public class TickDynamicMod extends DummyModContainer
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
-    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId).append(".").append(name).toString();
+    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId()).append(".").append(name).toString();
     	EntityGroup group = getEntityGroup(groupName);
     	
     	if(group == null && canCreate) //Create group for world
@@ -396,7 +368,7 @@ public class TickDynamicMod extends DummyModContainer
     		offsetCount += 7;
     	}
     	
-    	String groupNamePrefix = new StringBuilder().append(world.provider.dimensionId).append(".").toString();
+    	String groupNamePrefix = new StringBuilder().append(world.provider.getDimensionId()).append(".").toString();
     	//TODO: Don't compare the first 10 characters, as they are always the same(Have offset)
     	for(Map.Entry<String, EntityGroup> entry : entityGroups.entrySet()) {
     		String groupName = entry.getKey();
@@ -410,7 +382,7 @@ public class TickDynamicMod extends DummyModContainer
     }
     
     public String getWorldPrefix(World world) {
-    	return "worlds.dim" + world.provider.dimensionId;
+    	return "worlds.dim" + world.provider.getDimensionId();
     }
     
     public ConfigCategory getWorldConfigCategory(World world) {

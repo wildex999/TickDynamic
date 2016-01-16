@@ -7,6 +7,7 @@ import com.wildex999.tickdynamic.TickDynamicMod;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -84,7 +85,7 @@ public class CommandEnabled implements ICommand{
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender sender, String[] args) {
+	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
 		if(args[args.length-1].startsWith("y"))
 			return listYes;
 		else if(args[args.length-1].startsWith("n"))
@@ -98,7 +99,7 @@ public class CommandEnabled implements ICommand{
 	}
 	
 	@Override
-	public int compareTo(Object arg0) {
+	public int compareTo(ICommand o) {
 		return 0;
 	}
 

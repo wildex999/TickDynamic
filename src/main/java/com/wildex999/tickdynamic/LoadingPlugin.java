@@ -2,20 +2,18 @@ package com.wildex999.tickdynamic;
 
 import java.util.Map;
 
-import net.minecraft.launchwrapper.Launch;
-
 import com.wildex999.patcher.EntityInjector;
 import com.wildex999.patcher.TransformerPatcher;
 
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin.Name;
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin.DependsOn;
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin.MCVersion;
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin.SortingIndex;
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin.TransformerExclusions;
+import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.DependsOn;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.MCVersion;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.SortingIndex;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.TransformerExclusions;
 
 @SortingIndex(1009) //Run after deobfuscation, and try to run after most other coremods
-@MCVersion("1.7.10")
+@MCVersion("1.8.9")
 @DependsOn("forge")
 @TransformerExclusions({ "com.wildex999", })
 public class LoadingPlugin implements IFMLLoadingPlugin {

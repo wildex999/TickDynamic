@@ -9,16 +9,15 @@ import com.wildex999.tickdynamic.listinject.EntityType;
 import com.wildex999.tickdynamic.listinject.ListManager;
 import com.wildex999.tickdynamic.listinject.ListManagerEntities;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.world.World;
-import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.event.world.WorldEvent;
-import cpw.mods.fml.common.eventhandler.EventPriority;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.Phase;
-import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
-import cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent;
-import cpw.mods.fml.relauncher.ReflectionHelper;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
+import net.minecraftforge.fml.common.gameevent.TickEvent.WorldTickEvent;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class WorldEventHandler {
 	public TickDynamicMod mod;
@@ -74,8 +73,8 @@ public class WorldEventHandler {
     	//Overwrite existing lists, copying any loaded Entities
     	if(mod.debug)
     		System.out.println("Adding " + event.world.loadedEntityList.size() + " existing Entities.");
-    	List<EntityObject> oldList = event.world.loadedEntityList;
-    	event.world.loadedEntityList = entityManager;
+    	List<? extends EntityObject> oldList = event.world.loadedEntityList;
+    	ReflectionHelper.setPrivateValue(World.class, event.world, entityManager, "loadedEntityList", "field_72997_g");
     	for(EntityObject obj : oldList) {
     		entityManager.add(obj);
     	}
@@ -84,7 +83,7 @@ public class WorldEventHandler {
     	if(mod.debug)
     		System.out.println("Adding " + event.world.loadedTileEntityList.size() + " existing TileEntities.");
     	oldList = event.world.loadedTileEntityList;
-    	event.world.loadedTileEntityList = tileEntityManager;
+    	ReflectionHelper.setPrivateValue(World.class, event.world, tileEntityManager, "loadedTileEntityList", "field_147482_g");
     	for(EntityObject obj : oldList) {
     		tileEntityManager.add(obj);
     	}

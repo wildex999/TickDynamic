@@ -8,11 +8,12 @@ import java.util.ListIterator;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 
 //The World Entities loop does not use iterators, so we have to handle it specially
 
-public class ListManagerEntities extends ListManager {
+public class ListManagerEntities extends ListManager<EntityObject> {
 
 	private boolean updateStarted;
 	private Iterator<EntityObject> entityIterator;

@@ -15,18 +15,11 @@ import java.util.Set;
 import org.apache.commons.lang3.NotImplementedException;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
-import com.wildex999.tickdynamic.timemanager.TimeManager;
-import com.wildex999.tickdynamic.timemanager.TimedEntities;
-import com.wildex999.tickdynamic.timemanager.TimedGroup;
 
-import cpw.mods.fml.common.registry.EntityRegistry;
-import cpw.mods.fml.common.registry.GameData;
-import cpw.mods.fml.common.registry.GameRegistry;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 import net.minecraftforge.common.config.ConfigCategory;
-import net.minecraftforge.common.config.Property;
 
 /*
  * Written by: Wildex999
@@ -34,7 +27,7 @@ import net.minecraftforge.common.config.Property;
  * Overrides ArrayList to act as an replacement for loadedEntityList and loadedTileEntityList.
  */
 
-public class ListManager implements List<EntityObject> {
+public class ListManager<T extends EntityObject> implements List<T> {
 	protected World world;
 	protected TickDynamicMod mod;
 	protected EntityType entityType;
@@ -64,7 +57,7 @@ public class ListManager implements List<EntityObject> {
 		age = 0;
 		
 		if(mod.debug)
-			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.dimensionId + ")");
+			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.getDimensionId() + ")");
 		
 		//Add default Entity group
 		if(type == EntityType.Entity)
@@ -201,7 +194,7 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends EntityObject> c) {
+	public boolean addAll(Collection<? extends T> c) {
 		//TODO: Actually verify that the list did change before returning true
 		for(EntityObject element : c)
 			add(element);
@@ -209,7 +202,7 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends EntityObject> c) {
+	public boolean addAll(int index, Collection<? extends T> c) {
 		return addAll(c);
 	}
 
@@ -248,7 +241,7 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public EntityObject get(int index) {
+	public T get(int index) {
 		if(index >= entityCount || index < 0)
 			throw new IndexOutOfBoundsException("Tried to get index: " + index + ", but size is: " + entityCount);
 		//Walk through groups, adding their size to index, until we reach the group with the index
@@ -256,7 +249,7 @@ public class ListManager implements List<EntityObject> {
 		int offset = 0;
 		for(EntityGroup group : localGroups) {
 			if(offset + group.getEntityCount() > index)
-				return group.entities.get(index - offset);
+				return (T) group.entities.get(index - offset);
 			offset += group.getEntityCount();
 		}
 		throw new IndexOutOfBoundsException("Reached end of groups before finding index: " + index);
@@ -280,17 +273,17 @@ public class ListManager implements List<EntityObject> {
 	}
 	
 	@Override
-	public Iterator<EntityObject> iterator() {
-		return new EntityIterator(this, getAge());
+	public Iterator<T> iterator() {
+		return (Iterator<T>) new EntityIterator(this, getAge());
 	}
 
 	@Override
-	public ListIterator<EntityObject> listIterator() {
+	public ListIterator<T> listIterator() {
 		throw new NotImplementedException("listIterator is not implemented in TickDynamic's List implementation!");
 	}
 
 	@Override
-	public ListIterator<EntityObject> listIterator(int index) {
+	public ListIterator<T> listIterator(int index) {
 		throw new NotImplementedException("listIterator(index) is not implemented in TickDynamic's List implementation!");
 	}
 
@@ -310,13 +303,13 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public EntityObject remove(int index) {
+	public T remove(int index) {
 		if(mod.debug)
 		{
 			Thread.currentThread().dumpStack();
 			System.out.println("Debug Warning: Using slow remove of objects(Remove by index)!");
 		}
-		EntityObject entityObject = get(index);
+		T entityObject = get(index);
 		if(remove(entityObject))
 			return entityObject;
 		return null;
@@ -337,7 +330,7 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public EntityObject set(int index, EntityObject element) {
+	public T set(int index, EntityObject element) {
 		//TODO: I can see absolutely no use for this in Minecraft, and any implementation would be slow(-ish) and inaccurate
 		throw new NotImplementedException("set is not implemented in TickDynamic's List implementation!");
 	}
@@ -348,7 +341,7 @@ public class ListManager implements List<EntityObject> {
 	}
 
 	@Override
-	public List<EntityObject> subList(int fromIndex, int toIndex) {
+	public List<T> subList(int fromIndex, int toIndex) {
 		throw new NotImplementedException("subList is not implemented in TickDynamic's List implementation!");
 	}
 
