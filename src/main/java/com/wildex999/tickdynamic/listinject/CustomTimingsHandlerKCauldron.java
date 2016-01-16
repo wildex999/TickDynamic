@@ -2,6 +2,7 @@ package com.wildex999.tickdynamic.listinject;
 
 import org.spigotmc.CustomTimingsHandler;
 
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 /*
@@ -11,24 +12,47 @@ import net.minecraft.world.World;
 
 public class CustomTimingsHandlerKCauldron extends CustomTimingsHandler {
 
-	private static int indexCount = 0;
+	public static CustomTimingsHandler currentTimer;
 	
-	private CustomTimingsHandler original;
+	private boolean loopHandler;
+	private World world;
 	
-	//loopHandler: If true, will handle the check for starting and ending TileEntity loop.
-	//			   If false, checks for entering and exiting TileEntity tick.
+	public static boolean inLoop;
+	public static boolean inTick;
+	
 	public CustomTimingsHandlerKCauldron(World world, boolean loopHandler) {
-		super("TDP_"+(indexCount++));
-		this.original = original;
+		super("TD_" + world.provider.dimensionId + (loopHandler == true ? "_loop" : "_tick"));
+		this.loopHandler = loopHandler;
+		this.world = world;
 	}
 	
 	@Override
 	public void startTiming() {
+		if(!loopHandler)
+		{
+			inTick = true;
+			currentTimer.startTiming();
+		}
+		else
+		{
+			inLoop = true;
+		}
+		
 		
 	}
 	
 	@Override
 	public void stopTiming() {
+		if(inTick)
+		{
+			inTick = false;
+			currentTimer.stopTiming();
+		}
+		else
+		{
+			inLoop = false;
+			((ListManagerTileEntities)world.loadedTileEntityList).stopUpdate();
+		}
 		
 	}
 

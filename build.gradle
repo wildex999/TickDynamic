@@ -17,7 +17,7 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "0.2.0"
+version = "0.2.0-dev1"
 String fullversion = "1.7.10-10.13.2.1291"
 group= "com.wildex999.tickdynamic" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "tickdynamic-kcauldron" + fullversion
@@ -67,7 +67,7 @@ processResources
 sourceSets {
     main {
         java {
-            exclude 'net/**'
+            //exclude 'net/**'
        }
    }
 }
@@ -79,4 +79,5 @@ jar {
     }
     
     exclude 'org/**'
+    exclude 'net/**'
 }

@@ -3,11 +3,15 @@ package com.wildex999.tickdynamic;
 import java.util.HashMap;
 import java.util.List;
 
+import org.spigotmc.CustomTimingsHandler;
+
 import com.wildex999.tickdynamic.listinject.CustomProfiler;
+import com.wildex999.tickdynamic.listinject.CustomTimingsHandlerKCauldron;
 import com.wildex999.tickdynamic.listinject.EntityObject;
 import com.wildex999.tickdynamic.listinject.EntityType;
 import com.wildex999.tickdynamic.listinject.ListManager;
 import com.wildex999.tickdynamic.listinject.ListManagerEntities;
+import com.wildex999.tickdynamic.listinject.ListManagerTileEntities;
 
 import net.minecraft.profiler.Profiler;
 import net.minecraft.world.World;
@@ -53,6 +57,9 @@ public class WorldEventHandler {
     	if(event.world.isRemote)
     		return;
     	
+    	if(mod.debug)
+    		System.out.println("World load: " + event.world.provider.getDimensionName());
+    	
     	//Inject Custom Profiler for watching Entity ticking
     	try {
     		setCustomProfiler(event.world, new CustomProfiler(event.world.theProfiler, event.world));
@@ -62,13 +69,26 @@ public class WorldEventHandler {
     		return; //Do not add TickDynamic to world
     	}
     	
+    	//Get WorldTimings class and instance
+    	Class worldTimingsHandlerClass;
+    	Object worldTimingsHandlerInstance;
+    	try {
+    		worldTimingsHandlerClass = Class.forName("org.bukkit.craftbukkit.v1_7_R4.SpigotTimings$WorldTimingsHandler");
+    		worldTimingsHandlerInstance = World.class.getField("timings").get(event.world);
+		} catch (Exception e) {
+			System.err.println("Unable to get class for TileEntity list management.");
+			System.err.println(e);
+			return; 
+		}
+    	
     	//Register our own Entity List manager, copying over any existing Entities
-    	if(mod.debug)
-    		System.out.println("World load: " + event.world.provider.getDimensionName());
     	ListManagerEntities entityManager = new ListManagerEntities(event.world, mod);
     	entityListManager.put(event.world, entityManager);
-    	/*ListManager tileEntityManager = new ListManager(event.world, mod, EntityType.TileEntity);
-    	tileListManager.put(event.world, tileEntityManager);*/
+    	ListManagerTileEntities tileEntityManager = new ListManagerTileEntities(event.world, mod);
+    	tileListManager.put(event.world, tileEntityManager);
+    	
+    	//Replace TileTick Timings Object for TileEntity
+    	ReflectionHelper.setPrivateValue(worldTimingsHandlerClass, worldTimingsHandlerInstance, tileEntityManager.timingsHandlerLoop, "tileEntityTick");
     	
     	//Overwrite existing lists, copying any loaded Entities
     	if(mod.debug)
@@ -80,13 +100,13 @@ public class WorldEventHandler {
     	}
     	
     	//Tiles
-    	/*if(mod.debug)
+    	if(mod.debug)
     		System.out.println("Adding " + event.world.loadedTileEntityList.size() + " existing TileEntities.");
     	oldList = event.world.loadedTileEntityList;
     	event.world.loadedTileEntityList = tileEntityManager;
     	for(EntityObject obj : oldList) {
     		tileEntityManager.add(obj);
-    	}*/
+    	}
     	
     }
     

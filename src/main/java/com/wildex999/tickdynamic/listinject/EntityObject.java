@@ -1,5 +1,7 @@
 package com.wildex999.tickdynamic.listinject;
 
+import org.spigotmc.CustomTimingsHandler;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
 
@@ -11,6 +13,7 @@ public class EntityObject {
 	public Entity TD_selfEntity; //Avoid casting
 	public TileEntity TD_selfTileEntity; //Avoid casting
 	public boolean TD_selfInit = false;
+	public CustomTimingsHandler TD_originalTimer; //Original CustomTimingsHandler to call for TileEntities
 
 	//Initialize the EntityObject, usually called when added to an Entity List.
 	public void TD_Init(EntityGroup group) {
@@ -20,7 +23,10 @@ public class EntityObject {
 			if(self instanceof Entity)
 				TD_selfEntity = (Entity) self;
 			else if(self instanceof TileEntity)
+			{
 				TD_selfTileEntity = (TileEntity) self;
+				TD_originalTimer = TD_selfTileEntity.tickTimer;
+			}
 			TD_selfInit = true;
 		}
 		TD_entityGroup = group;

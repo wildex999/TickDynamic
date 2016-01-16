@@ -77,8 +77,6 @@ public class EntityIteratorTimed implements Iterator<EntityObject> {
 				continue;
 			}
 			
-			//currentOffset = 0;
-			//remainingCount = entityList.size();
 			currentOffset = currentGroup.timedGroup.startUpdateObjects();
 			remainingCount = currentGroup.timedGroup.getUpdateCount();
 			updateCount = 0;
