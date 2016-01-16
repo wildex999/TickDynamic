@@ -81,9 +81,9 @@ public class WorldEventHandler {
     	
     	//Tiles
     	if(mod.debug)
-    		System.out.println("Adding " + event.world.loadedTileEntityList.size() + " existing TileEntities.");
-    	oldList = event.world.loadedTileEntityList;
-    	ReflectionHelper.setPrivateValue(World.class, event.world, tileEntityManager, "loadedTileEntityList", "field_147482_g");
+    		System.out.println("Adding " + event.world.tickableTileEntities.size() + " existing TileEntities.");
+    	oldList = event.world.tickableTileEntities;
+    	ReflectionHelper.setPrivateValue(World.class, event.world, tileEntityManager, "tickableTileEntities", "field_175730_i");
     	for(EntityObject obj : oldList) {
     		tileEntityManager.add(obj);
     	}

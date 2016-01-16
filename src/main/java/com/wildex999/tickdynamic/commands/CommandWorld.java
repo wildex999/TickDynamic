@@ -111,8 +111,8 @@ public class CommandWorld implements ICommand {
 		List<EntityGroup> groups = new ArrayList<EntityGroup>();
 		if(world.loadedEntityList instanceof ListManager)
 			addGroupsFromList(groups, (ListManager)world.loadedEntityList);
-		if(world.loadedTileEntityList instanceof ListManager)
-			addGroupsFromList(groups, (ListManager)world.loadedTileEntityList);
+		if(world.tickableTileEntities instanceof ListManager)
+			addGroupsFromList(groups, (ListManager)world.tickableTileEntities);
 		
 		//Sort the groups, so we don't just have Entities followed by TileEntities
 		//TODO: More sorting options
