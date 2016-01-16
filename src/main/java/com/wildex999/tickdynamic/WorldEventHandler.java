@@ -53,6 +53,10 @@ public class WorldEventHandler {
     	if(event.world.isRemote)
     		return;
     	
+    	//Register our own Entity List manager, copying over any existing Entities
+    	if(mod.debug)
+    		System.out.println("World load: " + event.world.provider.getDimensionName());
+    	
     	//Inject Custom Profiler for watching Entity ticking
     	try {
     		setCustomProfiler(event.world, new CustomProfiler(event.world.theProfiler));
@@ -62,9 +66,6 @@ public class WorldEventHandler {
     		return; //Do not add TickDynamic to world
     	}
     	
-    	//Register our own Entity List manager, copying over any existing Entities
-    	if(mod.debug)
-    		System.out.println("World load: " + event.world.provider.getDimensionName());
     	ListManagerEntities entityManager = new ListManagerEntities(event.world, mod);
     	entityListManager.put(event.world, entityManager);
     	ListManager tileEntityManager = new ListManager(event.world, mod, EntityType.TileEntity);

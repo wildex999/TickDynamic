@@ -279,15 +279,8 @@ public class ListManager implements List<EntityObject> {
 		throw new NotImplementedException("lastIndexOf is not implemented in TickDynamic's List implementation!");
 	}
 	
-	//Return correct Iterator depending on current stage
 	@Override
 	public Iterator<EntityObject> iterator() {
-		if(customProfiler.reachedTile)
-		{
-			customProfiler.reachedTile = false; //Reset flag
-			return new EntityIteratorTimed(this, getAge());
-		}
-		
 		return new EntityIterator(this, getAge());
 	}
 

@@ -66,23 +66,17 @@ public class ListManagerEntities extends ListManager {
 		return lastObj;
 	}
 	
-	//Iterators: Return non-timed(For now. Later we might to return timed if they start using iterators)
-	@Override
-	public ListIterator<EntityObject> listIterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ListIterator<EntityObject> listIterator(int index) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 	
+	//Return correct Iterator depending on current stage
 	@Override
 	public Iterator<EntityObject> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+		if(customProfiler.reachedTile)
+		{
+			customProfiler.reachedTile = false; //Reset flag
+			return new EntityIteratorTimed(this, getAge());
+		}
+		return super.iterator();
 	}
+	
 
 }
