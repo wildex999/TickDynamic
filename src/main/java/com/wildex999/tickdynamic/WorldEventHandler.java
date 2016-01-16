@@ -74,7 +74,7 @@ public class WorldEventHandler {
     	if(mod.debug)
     		System.out.println("Adding " + event.world.loadedEntityList.size() + " existing Entities.");
     	List<? extends EntityObject> oldList = event.world.loadedEntityList;
-    	ReflectionHelper.setPrivateValue(World.class, event.world, entityManager, "loadedEntityList", "field_72997_g");
+    	ReflectionHelper.setPrivateValue(World.class, event.world, entityManager, "loadedEntityList", "field_72996_f");
     	for(EntityObject obj : oldList) {
     		entityManager.add(obj);
     	}
