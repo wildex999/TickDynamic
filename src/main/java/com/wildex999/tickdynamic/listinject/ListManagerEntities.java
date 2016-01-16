@@ -70,11 +70,7 @@ public class ListManagerEntities extends ListManager {
 	//Return correct Iterator depending on current stage
 	@Override
 	public Iterator<EntityObject> iterator() {
-		if(customProfiler.reachedTile)
-		{
-			customProfiler.reachedTile = false; //Reset flag
-			return new EntityIteratorTimed(this, getAge());
-		}
+        //For now, we know the tick loop doesn't use iterator, so we just return a normal one
 		return super.iterator();
 	}
 	

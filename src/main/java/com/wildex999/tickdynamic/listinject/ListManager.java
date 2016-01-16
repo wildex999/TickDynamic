@@ -281,6 +281,12 @@ public class ListManager implements List<EntityObject> {
 	
 	@Override
 	public Iterator<EntityObject> iterator() {
+		if(customProfiler.reachedTile)
+		{
+			customProfiler.reachedTile = false; //Reset flag
+			return new EntityIteratorTimed(this, getAge());
+		}
+		
 		return new EntityIterator(this, getAge());
 	}
 

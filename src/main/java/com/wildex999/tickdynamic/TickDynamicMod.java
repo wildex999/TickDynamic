@@ -75,7 +75,7 @@ import cpw.mods.fml.common.network.NetworkRegistry;
 public class TickDynamicMod extends DummyModContainer
 {
     public static final String MODID = "tickDynamic";
-    public static final String VERSION = "0.2.0-dev1";
+    public static final String VERSION = "0.2.0-dev2";
     public static boolean debug = false;
     public static boolean debugTimer = false;
     public static TickDynamicMod tickDynamic;
