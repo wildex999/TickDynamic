@@ -1,6 +1,12 @@
 # TickDynamic
 Public Issues repository for the Minecraft mod Tick Dynamic.
 
-The project will be Open-Sourced later at some point =)
+Development Releases:
+There are currently development releases of version 0.2.0 on github.
+- Forge 1.8.9
+- Forge 1.7.10
+- KCauldron
 
-Webpage: http://mods.stjerncraft.com/tickdynamic
+Check the "Releases" tab on the top. I would appreciate any feedback on the dev versions, so I can make the final releases as bug-free as possible. =)
+
+Webpage & final release downloads: http://mods.stjerncraft.com/tickdynamic
