@@ -22,10 +22,12 @@ public class TimerTickTask extends TimerTask {
 			mod.tpsList.add(mod.tickCounter);
 			mod.tickCounter = 0;
 			
-			mod.tpsMutex.release();
 		} catch (InterruptedException e) {
-			//TODO: What happens to our timer if it reaches here? Our TPS calculation will get 'stuck'
+			System.err.println("Exception during TPS Calculation:");
 			e.printStackTrace();
+		} finally {
+			if(mod != null && mod.tpsMutex != null)
+				mod.tpsMutex.release();
 		}
 		
 

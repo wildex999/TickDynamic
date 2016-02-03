@@ -116,8 +116,9 @@ public class WorldEventHandler {
     	list = tileListManager.remove(event.world);
     	if(list != null)
     		list.clear();
-
-    	//TODO: Verify we have no hanging handles to world, especially through the groups
+    	
+    	//Clear loaded groups for world
+    	mod.clearWorldEntityGroups(event.world);
     }
     
     private void setCustomProfiler(World world, Profiler profiler) throws Exception {

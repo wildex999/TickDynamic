@@ -210,6 +210,10 @@ public class EntityGroup {
 		return groupType;
 	}
 	
+	public World getWorld() {
+		return world;
+	}
+	
 	//Copy variables from another EntityGroup to this one
 	//copyEntries: Whether to copy the entityEntries list
 	public void copy(EntityGroup other, boolean copyEntries) {
