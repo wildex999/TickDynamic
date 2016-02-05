@@ -77,9 +77,9 @@ public class TickDynamicConfig {
     	
     	//Default example for Entities and TileEntities in dim0(Overworld)
     	if(!mod.config.hasCategory("worlds.dim0.entity"))
-    		mod.config.get("worlds.dim0.entity", ITimed.configKeySlicesMax, 1000);
+    		mod.config.get("worlds.dim0.entity", ITimed.configKeySlicesMax, mod.defaultEntitySlicesMax);
     	if(!mod.config.hasCategory("worlds.dim0.tileentity"))
-    		mod.config.get("worlds.dim0.tileentity", ITimed.configKeySlicesMax, 1000);
+    		mod.config.get("worlds.dim0.tileentity", ITimed.configKeySlicesMax, mod.defaultEntitySlicesMax);
     	
     	//Reload local groups
     	if(includeExisting) {
