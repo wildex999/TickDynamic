@@ -14,6 +14,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.NotImplementedException;
 
+import com.wildex999.tickdynamic.TickDynamicConfig;
 import com.wildex999.tickdynamic.TickDynamicMod;
 import com.wildex999.tickdynamic.timemanager.TimeManager;
 import com.wildex999.tickdynamic.timemanager.TimedEntities;
@@ -54,7 +55,7 @@ public class ListManager implements List<EntityObject> {
 		this.world = world;
 		this.customProfiler = (CustomProfiler)world.theProfiler;
 		this.mod = mod;
-		entityType = type;
+		this.entityType = type;
 		localGroups = new HashSet<EntityGroup>();
 		groupMap = new HashMap<Class, EntityGroup>();
 		playerEntities = new ArrayList<EntityPlayer>();
@@ -65,7 +66,25 @@ public class ListManager implements List<EntityObject> {
 		
 		if(mod.debug)
 			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.dimensionId + ")");
+
+		//Add groups from config
+		loadLocalGroups();
+		loadGlobalGroups();
 		
+		//Set default group for ungrouped
+		if(type == EntityType.Entity)
+			ungroupedEntities = mod.getWorldEntityGroup(world, "entity", type, false, false);
+		else 
+			ungroupedEntities = mod.getWorldEntityGroup(world, "tileentity", type, false, false);
+		
+		if(ungroupedEntities == null || !localGroups.contains(ungroupedEntities) )
+			throw new RuntimeException("TickDynamic Assert failure: Could not find " + type + " group during world initialization!");
+		
+		createGroupMap();
+	}
+	
+	//Add any local groups which are not already loaded
+	private void loadLocalGroups() {
 		//Add local groups from config
 		ConfigCategory config = mod.getWorldConfigCategory(world);
 		Iterator<ConfigCategory> localIt;
@@ -73,57 +92,56 @@ public class ListManager implements List<EntityObject> {
 		{
 			ConfigCategory localGroupCategory = localIt.next();
 			String name = localGroupCategory.getName();
-			EntityGroup localGroup = mod.getWorldEntityGroup(world, name, type, true, true);
-			if(localGroup.getGroupType() != type)
+			EntityGroup localGroup = mod.getWorldEntityGroup(world, name, entityType, true, true);
+			if(localGroup.getGroupType() != entityType || localGroups.contains(localGroup))
 				continue;
-			
+
 			if(mod.debug)
 				System.out.println("Load local group: " + name);
 			localGroups.add(localGroup);
 			localGroup.list = this;
 		}
-		
-		//Add a copy of any remaining global groups
-		config = mod.config.getCategory("groups");
+	}
+
+	//Add a copy of any global groups who are not already loaded
+	private void loadGlobalGroups() {
+		ConfigCategory config = mod.config.getCategory("groups");
 		Iterator<ConfigCategory> globalIt;
 		for(globalIt = config.getChildren().iterator(); globalIt.hasNext(); )
 		{
 			ConfigCategory groupCategory = globalIt.next();
 			String name = groupCategory.getName();
 			EntityGroup globalGroup = mod.getEntityGroup("groups." + name);
-			
-			if(globalGroup == null || globalGroup.getGroupType() != type)
+
+			if(globalGroup == null || globalGroup.getGroupType() != entityType)
 				continue;
-			
+
 			//Get or create the local group as a copy of the global, but without a world config entry.
 			//Will inherit config from the global group.
-			EntityGroup localGroup = mod.getWorldEntityGroup(world, name, type, true, false);
+			EntityGroup localGroup = mod.getWorldEntityGroup(world, name, entityType, true, false);
 			if(localGroups.contains(localGroup))
 				continue; //Local group already defined
-			
+
 			if(mod.debug)
 				System.out.println("Load global group: " + name);
 			localGroups.add(localGroup);
 			localGroup.list = this;
 		}
-		
-		//Set default group for ungrouped
-		if(type == EntityType.Entity)
-			ungroupedEntities = mod.getWorldEntityGroup(world, "entity", type, false, false);
-		else 
-			ungroupedEntities = mod.getWorldEntityGroup(world, "tileentity", type, false, false);
-		if(ungroupedEntities == null || !localGroups.contains(ungroupedEntities) )
-			throw new RuntimeException("TickDynamic Assert failure: Could not find " + type + " group during world initialization!");
-		
+	}
+	
+	//Create new Class to Group map
+	public void createGroupMap() {
 		if(mod.debug)
-			System.out.println("Creating ID map");
+			System.out.println("Creating Group map");
+		groupMap.clear();
+		
 		//Create map of ID to group
 		for(EntityGroup group : localGroups)
 		{
 			Set<Class> entries = group.getEntityEntries();
 			for(Class entityClass : entries)
 			{
-				if(mod.debug)
+				if(mod.debugGroups)
 				{
 					String localPath = group.getConfigEntry();
 					if(localPath == null)
@@ -139,12 +157,40 @@ public class ListManager implements List<EntityObject> {
 		
 		if(mod.debug)
 			System.out.println("Done!");
-		
 	}
 	
 	//Re-create groups from config, and move any entities in/out due to change
 	public void reloadGroups() {
 		//TODO: Do partial updates each tick to not stop the world, I.e 1% of groups per tick?
+		
+		//Reload config, marking for removal those who no longer exists
+		TickDynamicConfig.loadGroups(mod, "worlds.dim" + world.provider.dimensionId);
+		
+		//Move all EntityObjects to new list for later resorting into new groups
+		ArrayList<EntityObject> entityList = new ArrayList<EntityObject>(entityCount);
+		Iterator<EntityGroup> groupIterator = localGroups.iterator();
+		while(groupIterator.hasNext()) {
+			EntityGroup group = groupIterator.next();
+			entityList.addAll(group.entities);
+			group.clearEntities();
+			
+			//Group was removed from config
+			if(!group.valid || (group.base != null && !group.base.valid))
+				groupIterator.remove();
+			else
+				group.readConfig(false);
+		}
+		
+		//Load any new groups
+		loadLocalGroups();
+		loadGlobalGroups();
+		
+		//Recreate the Group Map in case the groups have changed
+		createGroupMap();
+		
+		//Re-sort entities into the new groups
+		for(EntityObject entity : entityList) 
+			assignToGroup(entity);
 	}
 	
 	//Assign the given EntityObject to an appropriate group
@@ -159,13 +205,13 @@ public class ListManager implements List<EntityObject> {
 		group = groupMap.get(object.getClass());
 		if(group == null)
 		{
-			if(mod.debug)
-				System.out.println("Adding Entity: " + object.getClass() + " -> Ungrouped");
+			if(mod.debugGroups)
+				System.out.println("Adding Entity: " + object.getClass() + " -> Ungrouped(" + entityType + ")");
 			ungroupedEntities.addEntity(object);
 		}
 		else
 		{
-			if(mod.debug)
+			if(mod.debugGroups)
 				System.out.println("Adding Entity: " + object.getClass() + " -> " + group.getName());
 			group.addEntity(object);
 		}

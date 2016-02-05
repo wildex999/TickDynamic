@@ -68,6 +68,12 @@ public class CustomProfiler extends Profiler {
 			break;
 			
 		case InTick:
+			//Sometimes the InTick isn't correctly closed, allow some leeway here
+			if(depthCount <= 1 && sectionName.equals("remove")) {
+				setStage(Stage.InRemove);
+				depthCount = 0;
+				break;
+			}
 		case InRemove:
 			depthCount++;
 			break;
@@ -80,11 +86,11 @@ public class CustomProfiler extends Profiler {
 	public void endSection() {
 		switch(stage) {
 		case InTick:
-			if(depthCount-- == 0)
+			if(depthCount-- <= 0)
 				setStage(Stage.InLoop);
 			break;
 		case InRemove:
-			if(depthCount-- == 0)
+			if(depthCount-- <= 0)
 				setStage(Stage.InLoop);
 			break;
 		default:
