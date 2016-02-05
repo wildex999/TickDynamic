@@ -66,13 +66,6 @@ public class ListManager implements List<EntityObject> {
 		if(mod.debug)
 			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.dimensionId + ")");
 		
-		//Add default Entity group
-		if(type == EntityType.Entity)
-			ungroupedEntities = mod.getWorldEntities(world);
-		else 
-			ungroupedEntities = mod.getWorldTileEntities(world);
-		localGroups.add(ungroupedEntities);
-		
 		//Add local groups from config
 		ConfigCategory config = mod.getWorldConfigCategory(world);
 		Iterator<ConfigCategory> localIt;
@@ -113,6 +106,14 @@ public class ListManager implements List<EntityObject> {
 			localGroups.add(localGroup);
 			localGroup.list = this;
 		}
+		
+		//Set default group for ungrouped
+		if(type == EntityType.Entity)
+			ungroupedEntities = mod.getWorldEntityGroup(world, "entity", type, false, false);
+		else 
+			ungroupedEntities = mod.getWorldEntityGroup(world, "tileentity", type, false, false);
+		if(ungroupedEntities == null || !localGroups.contains(ungroupedEntities) )
+			throw new RuntimeException("TickDynamic Assert failure: Could not find " + type + " group during world initialization!");
 		
 		if(mod.debug)
 			System.out.println("Creating ID map");
@@ -228,11 +229,17 @@ public class ListManager implements List<EntityObject> {
 
 	@Override
 	public boolean contains(Object object) {
-		if(!(object instanceof EntityObject))
+		if(!(object instanceof EntityObject)) {
+			if(mod.debug)
+				System.err.println("Trying to remove: " + object + " but not instanceof class EntityObject");
 			return false;
+		}
 		EntityObject entityObject = (EntityObject)object;
-		if(entityObject.TD_entityGroup == null || entityObject.TD_entityGroup.list != this)
+		if(entityObject.TD_entityGroup == null || entityObject.TD_entityGroup.list != this) {
+			if(mod.debug)
+				System.err.println("Trying to remove: " + object + " but does not belong to list: " + this + " but instead " + (entityObject.TD_entityGroup == null ? "None" : entityObject.TD_entityGroup.list));
 			return false;
+		}
 			
 		return true;
 	}
@@ -312,6 +319,9 @@ public class ListManager implements List<EntityObject> {
 			age++;
 			return true;
 		}
+		if(mod.debug)
+			System.err.println("Failed to remove: " + object + " unknown reason!");
+		
 		return false;
 	}
 

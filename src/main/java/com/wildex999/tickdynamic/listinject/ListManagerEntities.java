@@ -14,11 +14,11 @@ import net.minecraft.world.World;
 
 public class ListManagerEntities extends ListManager {
 
-	private boolean updateStarted;
-	private Iterator<EntityObject> entityIterator;
-	private EntityObject lastObj;
+	public boolean updateStarted;
+	public Iterator<EntityObject> entityIterator;
+	public EntityObject lastObj;
 	
-	private CustomProfiler profiler;
+	public CustomProfiler profiler;
 	
 	public ListManagerEntities(World world, TickDynamicMod mod) {
 		super(world, mod, EntityType.Entity);
