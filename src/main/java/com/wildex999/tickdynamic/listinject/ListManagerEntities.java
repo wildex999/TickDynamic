@@ -15,11 +15,11 @@ import net.minecraft.world.World;
 
 public class ListManagerEntities extends ListManager<EntityObject> {
 
-	private boolean updateStarted;
-	private Iterator<EntityObject> entityIterator;
-	private EntityObject lastObj;
+	public boolean updateStarted;
+	public Iterator<EntityObject> entityIterator;
+	public EntityObject lastObj;
 	
-	private CustomProfiler profiler;
+	public CustomProfiler profiler;
 	
 	public ListManagerEntities(World world, TickDynamicMod mod) {
 		super(world, mod, EntityType.Entity);
@@ -42,6 +42,7 @@ public class ListManagerEntities extends ListManager<EntityObject> {
 		if(!entityIterator.hasNext())
 		{
 			updateStarted = false;
+			profiler.stage = CustomProfiler.Stage.InLoop; //Make sure were at the stage where we can continue to TileEntities
 			return 0; //Should end
 		}
 
@@ -71,7 +72,7 @@ public class ListManagerEntities extends ListManager<EntityObject> {
 	//Return correct Iterator depending on current stage
 	@Override
 	public Iterator<EntityObject> iterator() {
-		//For now, we know the tick loop doesn't use iterator, so we just return a normal one
+        //For now, we know the tick loop doesn't use iterator, so we just return a normal one
 		return super.iterator();
 	}
 	

@@ -47,8 +47,9 @@ import net.minecraftforge.fml.common.gameevent.TickEvent.ServerTickEvent;
 public class TickDynamicMod extends DummyModContainer
 {
     public static final String MODID = "tickDynamic";
-    public static final String VERSION = "0.2.0-dev1";
+    public static final String VERSION = "0.2.0-dev3";
     public static boolean debug = false;
+    public static boolean debugGroups = false;
     public static boolean debugTimer = false;
     public static TickDynamicMod tickDynamic;
     
@@ -114,10 +115,10 @@ public class TickDynamicMod extends DummyModContainer
     }
     
     //Load the configuration file
-    //includeExisting: Whether to reload the config options for already loaded Managers and Groups.
-    public void loadConfig(boolean includeExisting) {
+    //groups: Whether to (re)load the groups
+    public void loadConfig(boolean groups) {
     	//TODO: Separate Initial load, reload and write
-    	TickDynamicConfig.loadConfig(this, includeExisting);
+    	TickDynamicConfig.loadConfig(this, groups);
     }
     
     public void writeConfig(boolean saveFile) {
@@ -135,7 +136,7 @@ public class TickDynamicMod extends DummyModContainer
     	timedObjects = new HashMap<String, ITimed>();
     	entityGroups = new HashMap<String, EntityGroup>();
     	
-    	loadConfig(false);
+    	loadConfig(true);
     	
     	root = new TimeManager(this, null, "root", null);
     	root.init();
@@ -273,7 +274,7 @@ public class TickDynamicMod extends DummyModContainer
     	return (TimedGroup)timedObjects.get(name);
     }
     
-    //Get a named EntityGroup which does not belong to a world
+    //Get a named EntityGroup which possibly does not belong to a world
     //Return: Null if doesn't exist in config
     public EntityGroup getEntityGroup(String name) {
     	//All Global Groups are loaded during config load/reload
@@ -286,13 +287,21 @@ public class TickDynamicMod extends DummyModContainer
     	return (TimeManager)timedObjects.get(name);
     }
     
-    //Get the TimeManager for a world.
-    //Will create if it doesn't exist.
-    public TimeManager getWorldTimeManager(World world) {
+    private String getEntityGroupName(World world, String name) {
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
-    	String managerName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId()).toString();
+    	StringBuilder strBuilder = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId);
+    	if(name != null && name.length() > 0)
+    		strBuilder.append(".").append(name);
+
+    	return strBuilder.toString();
+    }
+    
+    //Get the TimeManager for a world.
+    //Will create if it doesn't exist.
+    public TimeManager getWorldTimeManager(World world) {
+    	String managerName = getEntityGroupName(world, null);
     	TimeManager worldManager = getTimeManager(managerName);
     	
     	if(worldManager == null)
@@ -314,10 +323,7 @@ public class TickDynamicMod extends DummyModContainer
     //canCreate: Whether to create if it does not exist
     //hasConfig: Whether to create with config entry
     public TimedEntities getWorldTimedGroup(World world, String name, boolean canCreate, boolean hasConfig) {
-    	String remote = "";
-    	if(world.isRemote)
-    		remote = "client_";
-    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId()).append(".").append(name).toString(); 
+    	String groupName = getEntityGroupName(world, name);
     	TimedGroup group = getTimedGroup(groupName);
     	
     	if((group == null || !(group instanceof TimedEntities)) && canCreate)
@@ -339,10 +345,7 @@ public class TickDynamicMod extends DummyModContainer
     //canCreate: Whether to create the group if it does not exist
     //hasConfig: Whether to create with config entry
     public EntityGroup getWorldEntityGroup(World world, String name, EntityType groupType, boolean canCreate, boolean hasConfig) {
-    	String remote = "";
-    	if(world.isRemote)
-    		remote = "client_";
-    	String groupName = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId()).append(".").append(name).toString();
+    	String groupName = getEntityGroupName(world, name);
     	EntityGroup group = getEntityGroup(groupName);
     	
     	if(group == null && canCreate) //Create group for world
@@ -379,6 +382,33 @@ public class TickDynamicMod extends DummyModContainer
     	}
     	
     	return groups;
+    }
+    
+    //Unload every Entity Group for the given world
+    public void clearWorldEntityGroups(World world) {
+    	if(world == null)
+    		return;
+    	
+    	List<EntityGroup> groups = getWorldEntityGroups(world);
+    	int groupCount = 0;
+    	for(EntityGroup group : groups) {
+    		if(group.getWorld() == null) {
+    			if(debug)
+    				System.out.println("Unable to unload group: " + group.getName() + ". World is null.");
+    			continue;
+    		}
+    		String groupName = getEntityGroupName(group.getWorld(), group.getName());
+    		if(!entityGroups.remove(groupName, group)) {
+    			System.err.println("Failed to unload EntityGroup: " + groupName + " for world: " + world.provider.getDimensionName());
+    			System.err.println("This might cause the world to remain in memory!"); 
+    		}
+    		else
+    			groupCount++;
+    		group.valid = false;
+    	}
+    	
+    	if(debug)
+    		System.out.println("Unloaded " + groupCount + " EntityGroups while unloading world: " + world.provider.getDimensionName());
     }
     
     public String getWorldPrefix(World world) {

@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import net.minecraft.entity.Entity;
 
 /*
  * Iterator will continue from each group at the given offset and only iterate for the given number
@@ -39,7 +38,7 @@ public class EntityIteratorTimed implements Iterator<EntityObject> {
 	@Override
 	public boolean hasNext() {
 		if(currentAge != list.age)
-			throw new ConcurrentModificationException("List modified before going to next entry");
+			throw new ConcurrentModificationException("List modified before going to next entry.");
 		if(remainingCount > 0 && entityList.size() > 0)
 			return true;
 		
@@ -108,9 +107,16 @@ public class EntityIteratorTimed implements Iterator<EntityObject> {
 			return;
 		
 		//Remove while maintaining the Iterator integrity and position
-		list.remove(currentObject);
-		currentAge++;
-		currentOffset--;
+		if(list.remove(currentObject))
+		{
+			currentAge++;
+			currentOffset--;
+		}
+		else
+			System.err.println("Failed to remove: " + currentObject + " from loaded entity list!");
+		
+		if(currentAge != list.age)
+			throw new RuntimeException("ASSERT FAILED: " + currentAge + " : " + list.age);
 		
 		if(currentOffset < 0) //If we removed the first element
 			currentOffset = 0;

@@ -31,6 +31,7 @@ public class CommandHandler implements ICommand {
 		world,
 		identify,
 		reload,
+		reloadgroups,
 		enabled,
 		help
 	}
@@ -44,6 +45,7 @@ public class CommandHandler implements ICommand {
 		
 		subCommandHandlers = new HashMap<String, ICommand>();
 		subCommandHandlers.put("reload", new CommandReload(mod));
+		subCommandHandlers.put("reloadgroups", new CommandReloadGroups(mod));
 		subCommandHandlers.put("listworlds", new CommandListWorlds(mod));
 		subCommandHandlers.put("world", new CommandWorld(mod));
 		subCommandHandlers.put("enabled", new CommandEnabled(mod));

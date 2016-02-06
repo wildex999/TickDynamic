@@ -6,11 +6,15 @@ import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.world.WorldServer;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.config.ConfigCategory;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
 
 import com.wildex999.tickdynamic.listinject.EntityGroup;
 import com.wildex999.tickdynamic.listinject.EntityType;
+import com.wildex999.tickdynamic.listinject.ListManager;
 import com.wildex999.tickdynamic.timemanager.ITimed;
 import com.wildex999.tickdynamic.timemanager.TimeManager;
 import com.wildex999.tickdynamic.timemanager.TimedEntities;
@@ -18,9 +22,10 @@ import com.wildex999.tickdynamic.timemanager.TimedGroup;
 
 public class TickDynamicConfig {
 	
-	public static void loadConfig(TickDynamicMod mod, boolean includeExisting) {
-		mod.config.load();
-    	
+	public static void loadConfig(TickDynamicMod mod, boolean groups) {
+		//mod.config.load();
+    	mod.config = new Configuration(mod.config.getConfigFile());
+		
     	//--GENERAL CONFIG--
 		mod.config.getCategory("general");
 		mod.config.setCategoryComment("general", "WEBSITE: http://mods.stjerncraft.com/tickdynamic   <- Head here for the documentation, if you have problems or if you have questions."
@@ -44,6 +49,8 @@ public class TickDynamicConfig {
 		mod.enabled = mod.config.get("general", "enabled", true, "").getBoolean();
     	
 		mod.debug = mod.config.get("general", "debug", mod.debug, "Debug output. Warning: Might output a lot of data to console!").getBoolean();
+		
+		mod.debugGroups = mod.config.get("general", "debugGroups", mod.debugGroups, "Debug Group mapping and assignment. Will spam during world load and config reload!!!").getBoolean();
 		
 		mod.debugTimer = mod.config.get("general", "debugTimer", mod.debugTimer, "Debug output from time allocation and calculation. Warning: Setting this to true will cause a lot of console spam.\n"
     			+ "Only do it if developer or someone else asks for the output!").getBoolean();
@@ -72,24 +79,63 @@ public class TickDynamicConfig {
 		mod.defaultTileEntityMinimumObjects = mod.config.get(mod.configCategoryDefaultTileEntities, TimedGroup.configKeyMinimumObjects, mod.defaultTileEntityMinimumObjects, 
     			"The minimum number of TileEntities to update per tick, independent of time given.").getInt();*/
     	
-		//Load New, Reload and Remove old Global groups
-    	loadGlobalGroups(mod);
-    	
-    	//Default example for Entities and TileEntities in dim0(Overworld)
-    	if(!mod.config.hasCategory("worlds.dim0.entity"))
-    		mod.config.get("worlds.dim0.entity", ITimed.configKeySlicesMax, 1000);
-    	if(!mod.config.hasCategory("worlds.dim0.tileentity"))
-    		mod.config.get("worlds.dim0.tileentity", ITimed.configKeySlicesMax, 1000);
-    	
-    	//Reload local groups
-    	if(includeExisting) {
-    		
-    		for(ITimed timed : mod.timedObjects.values())
-    			timed.loadConfig(false);
-    		
-    		if(mod.root != null)
-    			mod.root.setTimeMax(mod.defaultTickTime * TimeManager.timeMilisecond);
-    	}
+		//Load New, Reload and Remove old groups
+		if(groups)
+		{
+			loadGlobalGroups(mod);
+
+			//Default example for Entities and TileEntities in dim0(Overworld)
+			if(!mod.config.hasCategory("worlds.dim0.entity"))
+			{
+				mod.config.get("worlds.dim0.entity", ITimed.configKeySlicesMax, mod.defaultEntitySlicesMax);
+				mod.config.get("worlds.dim0.entity", EntityGroup.config_groupType, EntityType.Entity.toString());
+			}
+			if(!mod.config.hasCategory("worlds.dim0.tileentity"))
+			{
+				mod.config.get("worlds.dim0.tileentity", ITimed.configKeySlicesMax, mod.defaultEntitySlicesMax);
+				mod.config.get("worlds.dim0.tileentity", EntityGroup.config_groupType, EntityType.TileEntity.toString());
+			}
+
+			//Reload local groups
+			WorldServer[] worlds = DimensionManager.getWorlds();
+			for(WorldServer world : worlds) {
+				if(mod.debug)
+					System.out.println("Reloading " + world.provider.getDimensionName());
+
+				if(world.loadedEntityList instanceof ListManager) {
+					ListManager entityList = (ListManager)world.loadedEntityList;
+					if(mod.debug)
+						System.out.println("Reloading " + entityList.size() + " Entities...");
+					entityList.reloadGroups();
+				}
+				if(world.loadedTileEntityList instanceof ListManager) {
+					ListManager tileList = (ListManager)world.loadedTileEntityList;
+					if(mod.debug)
+						System.out.println("Reloading " + tileList.size() + " TileEntities...");
+					tileList.reloadGroups();
+				}
+			}
+
+			if(mod.debug)
+				System.out.println("Done reloading worlds");
+
+			//Reload Timed
+			for(ITimed timed : mod.timedObjects.values())
+			{
+				if(timed instanceof TimedEntities)
+				{
+					TimedEntities timedGroup = (TimedEntities)timed;
+					if(!timedGroup.getEntityGroup().valid) {
+						mod.timedObjects.remove(timedGroup);
+						continue;
+					}
+				}
+				timed.loadConfig(false);
+			}
+
+			if(mod.root != null)
+				mod.root.setTimeMax(mod.defaultTickTime * TimeManager.timeMilisecond);
+		}
     	
     	//Save any new defaults
     	mod.config.save();
@@ -112,12 +158,22 @@ public class TickDynamicConfig {
 		//Load/Create default entity and tileentity groups
 		loadDefaultGlobalGroups(mod);
 		
-		ConfigCategory groupsCat = mod.config.getCategory("groups");
+		//Load Global groups
+		loadGroups(mod, "groups");
+	}
+	
+	//Load all groups under the given category
+	public static void loadGroups(TickDynamicMod mod, String category) {
+		ConfigCategory groupsCat = mod.config.getCategory(category);
 		Set<ConfigCategory> groups = groupsCat.getChildren();
 		
 		//Remove every group which is no longer in groups set
+		ArrayList<String> toRemove = new ArrayList<String>();
 		for(String groupPath : mod.entityGroups.keySet())
 		{
+			if(!groupPath.startsWith(category))
+				continue; //We only care about groups in the same category
+			
 			int nameIndex = groupPath.lastIndexOf(".");
 			String groupName;
 			if(nameIndex == -1)
@@ -126,21 +182,34 @@ public class TickDynamicConfig {
 				groupName = groupPath.substring(nameIndex+1);
 			
 			boolean remove = true;
-			for(ConfigCategory group : groups)
-			{
-				if(group.getName().equals(groupName))
-				{
-					remove = false;
-					break;
+			if(mod.config.hasCategory(groupPath))
+				remove = false;
+			
+			//Check if local copy of a global group
+			if(remove) {
+				EntityGroup entityGroup = mod.entityGroups.get(groupPath);
+				if(entityGroup != null && entityGroup.base != null) {
+					//Check if the global group still exists
+					if(mod.config.hasCategory("groups." + groupName))
+						remove = false;
 				}
 			}
 			
+			//Mark for removal after loop
 			if(remove)
 			{
+
 				if(mod.debug)
-					System.out.println("Remove Global Group: " + groupPath);
-				mod.entityGroups.remove(groupPath);
+					System.out.println("Remove Group: " + groupPath);
+				toRemove.add(groupPath);
 			}
+		}
+		
+		//Remove after due to ConcurrentException
+		for(String groupPath : toRemove) {
+			EntityGroup groupRemoved = mod.entityGroups.remove(groupPath);
+			if(groupRemoved != null)
+				groupRemoved.valid = false;
 		}
 		
 		//Load new groups
@@ -148,30 +217,36 @@ public class TickDynamicConfig {
 		for(ConfigCategory group : groups)
 		{
 			//Check if group already exists
-			EntityGroup entityGroup = mod.getEntityGroup(group.getName());
+			String groupPath = category + "." + group.getName();
+			EntityGroup entityGroup = mod.getEntityGroup(groupPath);
 			if(entityGroup == null)
 			{
-				String groupPath = "groups." + group.getName();
 				if(mod.debug)
 					System.out.println("Loading group: " + groupPath);
-				entityGroup = new EntityGroup(mod, null, null, group.getName(), groupPath, EntityType.Entity, null);
+				 
+				TimedEntities timedEntities = (TimedEntities) mod.getTimedGroup(groupPath);
+				if(timedEntities == null) {
+					timedEntities = new TimedEntities(mod, null, group.getName(), groupPath, null);
+					timedEntities.init();
+				}
+				
+				entityGroup = new EntityGroup(mod, null, timedEntities, group.getName(), groupPath, EntityType.Entity, null);
 				mod.entityGroups.put(groupPath, entityGroup);
 				if(mod.debug)
-					System.out.println("New Global Group: " + groupPath);
+					System.out.println("New Group: " + groupPath);
 			}
 			else
 			{
 				//Add to list of groups to update
 				updateGroups.add(entityGroup);
 				if(mod.debug)
-					System.out.println("Update Global Group: groups." + group.getName());
+					System.out.println("Update Group: " + groupPath);
 			}
 		}
 
 		//Update old
 		for(EntityGroup entityGroup : updateGroups)
 			entityGroup.readConfig(false);
-		
 	}
 	
 	public static void loadDefaultGlobalGroups(TickDynamicMod mod) {
@@ -218,8 +293,4 @@ public class TickDynamicConfig {
 		
 	}
 	
-	//Update config mark old config options as Decrepated
-	public void notifyDecrepated() {
-		//TODO
-	}
 }

@@ -6,26 +6,25 @@ import com.wildex999.tickdynamic.TickDynamicMod;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
-public class CommandReload implements ICommand {
+public class CommandReloadGroups implements ICommand {
 
 	private TickDynamicMod mod;
 	
-	public CommandReload(TickDynamicMod mod) {
+	public CommandReloadGroups(TickDynamicMod mod) {
 		this.mod = mod;
 	}
 
 	@Override
 	public String getCommandName() {
-		return "tickdynamic reload";
+		return "tickdynamic reloadgroups";
 	}
 
 	@Override
 	public String getCommandUsage(ICommandSender p_71518_1_) {
-		return "tickdynamic reload";
+		return "tickdynamic reloadgroups";
 	}
 
 	@Override
@@ -35,10 +34,10 @@ public class CommandReload implements ICommand {
 
 	@Override
 	public void processCommand(ICommandSender sender, String[] args) {
-		sender.addChatMessage(new ChatComponentText("Reloading configuration..."));
-		sender.addChatMessage(new ChatComponentText("Note: Moving of (tile)entities to new groups might cause lag!"));
-		mod.loadConfig(false);
-		sender.addChatMessage(new ChatComponentText("Configuration reloaded!"));
+		sender.addChatMessage(new ChatComponentText("Reloading Groups configuration..."));
+		sender.addChatMessage(new ChatComponentText("Note: Moving of (tile)entities to new groups might cause lag!!!"));
+		mod.loadConfig(true);
+		sender.addChatMessage(new ChatComponentText("Reload and moving complete!"));
 	}
 
 	@Override
@@ -47,7 +46,8 @@ public class CommandReload implements ICommand {
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
+	public List addTabCompletionOptions(ICommandSender p_71516_1_,
+			String[] p_71516_2_) {
 		return null;
 	}
 
@@ -57,7 +57,7 @@ public class CommandReload implements ICommand {
 	}
 	
 	@Override
-	public int compareTo(ICommand o) {
+	public int compareTo(Object arg0) {
 		return 0;
 	}
 

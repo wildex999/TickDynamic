@@ -49,6 +49,8 @@ public class EntityGroup {
 	public EntityGroup base;
 	public boolean enabled;
 	
+	public boolean valid; //Set to false when removed(World unload or config)
+	
 	private boolean useCorrectedTime;
 	private EntityType groupType;
 	
@@ -67,6 +69,7 @@ public class EntityGroup {
 	}
 	
 	//If base is not null, copy the values from it before reading the config
+	//groupType will be overwritten by config if it already has an entry
 	public EntityGroup(TickDynamicMod mod, World world, TimedEntities timedGroup, String name, String configEntry, EntityType groupType, EntityGroup base) {
 		if(timedGroup == null && base != null)
 			System.err.println("Assertion failed: Created EntityGroup with a null TimedGroup!");
@@ -97,6 +100,8 @@ public class EntityGroup {
 		this.mod = mod;
 		this.world = world;
 		readConfig(true);
+		
+		this.valid = true;
 	}
 	
 	//Read the config, but does not save defaults when created from a base Group
@@ -204,6 +209,10 @@ public class EntityGroup {
 	
 	public EntityType getGroupType() {
 		return groupType;
+	}
+	
+	public World getWorld() {
+		return world;
 	}
 	
 	//Copy variables from another EntityGroup to this one

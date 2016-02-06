@@ -8,6 +8,9 @@ import com.wildex999.tickdynamic.listinject.EntityObject;
 import com.wildex999.tickdynamic.listinject.EntityType;
 import com.wildex999.tickdynamic.listinject.ListManager;
 import com.wildex999.tickdynamic.listinject.ListManagerEntities;
+import com.wildex999.tickdynamic.timemanager.ITimed;
+import com.wildex999.tickdynamic.timemanager.TimeManager;
+import com.wildex999.tickdynamic.timemanager.TimedEntities;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.profiler.Profiler;
@@ -90,7 +93,7 @@ public class WorldEventHandler {
     	
     }
     
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onDimensionUnload(WorldEvent.Unload event)
     {
     	if(event.world == null || event.world.isRemote)
@@ -115,8 +118,25 @@ public class WorldEventHandler {
     	list = tileListManager.remove(event.world);
     	if(list != null)
     		list.clear();
-
-    	//TODO: Verify we have no hanging handles to world, especially through the groups
+    	
+    	//Clear loaded groups for world
+    	mod.clearWorldEntityGroups(event.world);
+    	
+    	//Clear timed groups
+    	ITimed manager = mod.getWorldTimeManager(event.world);
+    	if(manager != null)
+    		mod.timedObjects.remove(manager);
+    	
+    	for(ITimed timed : mod.timedObjects.values())
+		{
+    		if(timed instanceof TimedEntities)
+    		{
+    			TimedEntities timedGroup = (TimedEntities)timed;
+    			if(!timedGroup.getEntityGroup().valid)
+    				mod.timedObjects.remove(timedGroup);
+    		}
+		}
+    	
     }
     
     private void setCustomProfiler(World world, Profiler profiler) throws Exception {
