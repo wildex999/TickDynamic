@@ -44,6 +44,21 @@ public class TimedEntities extends TimedGroup {
 		listTPS = new LinkedList<Double>();
 		setTimeMax(0);
 		
+		if(this.base == null) {
+			setSliceMax(mod.defaultEntitySlicesMax);
+			setMinimumObjects(mod.defaultEntityMinimumObjects);
+			setMinimumTPS(mod.defaultEntityMinimumTPS);
+			setMinimumTime(mod.defaultEntityMinimumTime);
+		} else {
+			setSliceMax(base.getSliceMax());
+			if(base instanceof TimedEntities) {
+				TimedEntities baseEntities = (TimedEntities)base;
+				setMinimumObjects(baseEntities.getMinimumObjects());
+				setMinimumTPS(baseEntities.getMinimumTPS());
+				setMinimumTime(baseEntities.getMinimumTime());
+			}
+		}
+		
 		loadConfig(true);
     }
 	
@@ -52,7 +67,6 @@ public class TimedEntities extends TimedGroup {
 		if(configEntry == null)
 			return;
 		
-		int sliceMax = mod.defaultEntitySlicesMax;
 		String comment = "The number of slices given to this Group";
 		if(base != null && !mod.config.hasKey(configEntry, configKeySlicesMax))
 			sliceMax = mod.config.get(base.configEntry, configKeySlicesMax, sliceMax, comment).getInt();
@@ -60,7 +74,6 @@ public class TimedEntities extends TimedGroup {
 			sliceMax = mod.config.get(configEntry, configKeySlicesMax, sliceMax, comment).getInt();
 		setSliceMax(sliceMax);
 		
-		int minimumObjects = mod.defaultEntityMinimumObjects;
 		comment = "Minimum number of objects to tick, independent of slices. Set to 0 to disable.";
 		if(base != null && !mod.config.hasKey(configEntry, configKeyMinimumObjects))
 			minimumObjects = mod.config.get(base.configEntry, configKeyMinimumObjects, minimumObjects, comment).getInt();
@@ -68,7 +81,6 @@ public class TimedEntities extends TimedGroup {
 			minimumObjects = mod.config.get(configEntry, configKeyMinimumObjects, minimumObjects, comment).getInt();
 		setMinimumObjects(minimumObjects);
 
-		float minimumTPS = mod.defaultEntityMinimumTPS;
 		comment = "Minimum TPS to keep, independent of slices. Set to 0 to disable.";
 		if(base != null && !mod.config.hasKey(configEntry, configKeyMinimumTPS))
 			minimumTPS = (float)mod.config.get(base.configEntry, configKeyMinimumTPS, minimumTPS, comment).getDouble();
@@ -76,7 +88,6 @@ public class TimedEntities extends TimedGroup {
 			minimumTPS = (float)mod.config.get(configEntry, configKeyMinimumTPS, minimumTPS, comment).getDouble();
 		setMinimumTPS(minimumTPS);
 		
-		float minimumTime = mod.defaultEntityMinimumTime;
 		comment = "Minimum Time to keep(In milliseconds), independent of slices. Set to 0 to disable.";
 		if(base != null && !mod.config.hasKey(configEntry, configKeyMinimumTime))
 			minimumTime = (float)mod.config.get(base.configEntry, configKeyMinimumTime, minimumTime, comment).getDouble();

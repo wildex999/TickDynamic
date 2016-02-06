@@ -183,10 +183,7 @@ public class TickDynamicConfig {
 			
 			boolean remove = true;
 			if(mod.config.hasCategory(groupPath))
-			{
-				System.out.println("HAS: " + groupPath);
 				remove = false;
-			}
 			
 			//Check if local copy of a global group
 			if(remove) {
@@ -226,7 +223,14 @@ public class TickDynamicConfig {
 			{
 				if(mod.debug)
 					System.out.println("Loading group: " + groupPath);
-				entityGroup = new EntityGroup(mod, null, null, group.getName(), groupPath, EntityType.Entity, null);
+				 
+				TimedEntities timedEntities = (TimedEntities) mod.getTimedGroup(groupPath);
+				if(timedEntities == null) {
+					timedEntities = new TimedEntities(mod, null, group.getName(), groupPath, null);
+					timedEntities.init();
+				}
+				
+				entityGroup = new EntityGroup(mod, null, timedEntities, group.getName(), groupPath, EntityType.Entity, null);
 				mod.entityGroups.put(groupPath, entityGroup);
 				if(mod.debug)
 					System.out.println("New Group: " + groupPath);
