@@ -224,8 +224,12 @@ public class TimedEntities extends TimedGroup {
 		objectsRun += entitiesUpdated;
 		currentObjectIndex += entitiesUpdated;
 		
-		while(currentObjectIndex >= listSize)
-			currentObjectIndex -= listSize;
+		if(listSize > 0) {
+			while(currentObjectIndex >= listSize)
+				currentObjectIndex -= listSize;
+		}
+		else
+			currentObjectIndex = 0;
 	}
 	
 	@Override
