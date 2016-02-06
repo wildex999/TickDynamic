@@ -21,8 +21,8 @@ plugins {
 }
 */
 
-version = "0.2.0-dev1"
-String fullversion = "1.8.9-11.15.0.1699"
+version = "0.2.0-dev3"
+String fullversion = "1.8.9-11.15.1.1732"
 group= "com.wildex999.tickdynamic" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "tickdynamic-forge" + fullversion
 
