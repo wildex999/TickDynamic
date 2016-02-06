@@ -18,7 +18,7 @@ public class ListManagerEntities extends ListManager {
 	private EntityIteratorTimed entityIterator;
 	private EntityObject lastObj;
 	
-	private CustomProfiler profiler;
+	public CustomProfiler profiler;
 	
 	public ListManagerEntities(World world, TickDynamicMod mod) {
 		super(world, mod, EntityType.Entity);
@@ -46,6 +46,7 @@ public class ListManagerEntities extends ListManager {
 		if(!entityIterator.hasNext())
 		{
 			updateStarted = false;
+			profiler.stage = CustomProfiler.Stage.InLoop; //Make sure were at the stage where we can continue to TileEntities
 			return 0; //Should end
 		}
 
@@ -70,15 +71,13 @@ public class ListManagerEntities extends ListManager {
 		entityIterator.remove();
 		return lastObj;
 	}
-
+	
+	//Return correct Iterator depending on current stage
 	@Override
 	public Iterator<EntityObject> iterator() {
-		if(customProfiler.reachedTile)
-		{
-			customProfiler.reachedTile = false; //Reset flag
-			return new EntityIteratorTimed(this, getAge());
-		}
+        //For now, we know the tick loop doesn't use iterator, so we just return a normal one
 		return super.iterator();
 	}
+	
 
 }

@@ -8,3 +8,6 @@ forgeBase/
 .classpath
 .settings/
 .project
+run/
+TickDynamic_Client.launch
+TickDynamic_Server.launch
