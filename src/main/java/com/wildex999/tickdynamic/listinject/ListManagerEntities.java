@@ -41,7 +41,7 @@ public class ListManagerEntities extends ListManager {
 		if(!entityIterator.hasNext())
 		{
 			updateStarted = false;
-			profiler.stage = CustomProfiler.Stage.None;
+			profiler.stage = CustomProfiler.Stage.InLoop; //Make sure were at the stage where we can continue to TileEntities
 			return 0; //Should end
 		}
 
