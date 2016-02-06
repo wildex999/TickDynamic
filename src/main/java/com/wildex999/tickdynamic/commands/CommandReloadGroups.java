@@ -6,6 +6,7 @@ import com.wildex999.tickdynamic.TickDynamicMod;
 
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -46,8 +47,7 @@ public class CommandReloadGroups implements ICommand {
 	}
 
 	@Override
-	public List addTabCompletionOptions(ICommandSender p_71516_1_,
-			String[] p_71516_2_) {
+	public List addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
 		return null;
 	}
 
@@ -57,7 +57,7 @@ public class CommandReloadGroups implements ICommand {
 	}
 	
 	@Override
-	public int compareTo(Object arg0) {
+	public int compareTo(ICommand o) {
 		return 0;
 	}
 

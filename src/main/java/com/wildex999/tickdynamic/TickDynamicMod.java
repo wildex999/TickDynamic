@@ -291,7 +291,7 @@ public class TickDynamicMod extends DummyModContainer
     	String remote = "";
     	if(world.isRemote)
     		remote = "client_";
-    	StringBuilder strBuilder = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.dimensionId);
+    	StringBuilder strBuilder = new StringBuilder().append("worlds.").append(remote).append("dim").append(world.provider.getDimensionId());
     	if(name != null && name.length() > 0)
     		strBuilder.append(".").append(name);
 

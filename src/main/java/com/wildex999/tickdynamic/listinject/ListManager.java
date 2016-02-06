@@ -58,7 +58,7 @@ public class ListManager<T extends EntityObject> implements List<T> {
 		age = 0;
 		
 		if(mod.debug)
-			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.dimensionId + ")");
+			System.out.println("Initializing " + type + " list for world: " + world.provider.getDimensionName() + "(DIM" + world.provider.getDimensionId() + ")");
 
 		//Add groups from config
 		loadLocalGroups();
@@ -157,7 +157,7 @@ public class ListManager<T extends EntityObject> implements List<T> {
 		//TODO: Do partial updates each tick to not stop the world, I.e 1% of groups per tick?
 		
 		//Reload config, marking for removal those who no longer exists
-		TickDynamicConfig.loadGroups(mod, "worlds.dim" + world.provider.dimensionId);
+		TickDynamicConfig.loadGroups(mod, "worlds.dim" + world.provider.getDimensionId());
 		
 		//Move all EntityObjects to new list for later resorting into new groups
 		ArrayList<EntityObject> entityList = new ArrayList<EntityObject>(entityCount);
@@ -330,7 +330,7 @@ public class ListManager<T extends EntityObject> implements List<T> {
 		if(customProfiler.reachedTile)
 		{
 			customProfiler.reachedTile = false; //Reset flag
-			return new EntityIteratorTimed(this, getAge());
+			return (Iterator<T>) new EntityIteratorTimed(this, getAge());
 		}
 		
 		return (Iterator<T>) new EntityIterator(this, getAge());
