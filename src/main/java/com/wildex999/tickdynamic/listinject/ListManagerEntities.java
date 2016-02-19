@@ -29,7 +29,8 @@ public class ListManagerEntities extends ListManager<EntityObject> {
 	
 	@Override
 	public int size() {
-		if(profiler.stage == CustomProfiler.Stage.None || profiler.stage == CustomProfiler.Stage.InTick || profiler.stage == CustomProfiler.Stage.BeforeLoop)
+		if(profiler.stage == CustomProfiler.Stage.None || profiler.stage == CustomProfiler.Stage.InTick 
+				|| profiler.stage == CustomProfiler.Stage.BeforeLoop || profiler.stage == CustomProfiler.Stage.InRemove)
 			return super.size();
 
 		if(!updateStarted) {
