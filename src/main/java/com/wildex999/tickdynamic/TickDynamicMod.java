@@ -47,7 +47,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent.ServerTickEvent;
 public class TickDynamicMod extends DummyModContainer
 {
     public static final String MODID = "tickDynamic";
-    public static final String VERSION = "0.2.0-dev3";
+    public static final String VERSION = "0.2.0-dev4";
     public static boolean debug = false;
     public static boolean debugGroups = false;
     public static boolean debugTimer = false;
