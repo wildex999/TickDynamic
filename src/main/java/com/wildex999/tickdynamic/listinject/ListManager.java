@@ -319,8 +319,27 @@ public class ListManager implements List<EntityObject> {
 
 	@Override
 	public int indexOf(Object o) {
-		//TODO: Actually implement this, even if it would be a slow method
-		throw new NotImplementedException("indexOf is not implemented in TickDynamic's List implementation!");
+		if(!(o instanceof EntityObject))
+			return -1;
+		
+		EntityObject obj = (EntityObject)o;
+		if(obj.TD_entityGroup == null || obj.TD_entityGroup.list != this)
+			return -1;
+		
+		//Same strategy as get(index), jump groups, adding their size until we reach the group containing the Object
+		int offset = 0;
+		for(EntityGroup group : localGroups) {
+			if(obj.TD_entityGroup == group)
+			{
+				int index = group.entities.indexOf(obj);
+				if(index == -1)
+					return -1;
+				return offset + index;
+			}
+			offset += group.getEntityCount();
+		}
+		
+		return -1;
 	}
 
 	@Override
@@ -330,8 +349,28 @@ public class ListManager implements List<EntityObject> {
 
 	@Override
 	public int lastIndexOf(Object o) {
-		//TODO: Actually implement this, even if it would be a slow method
-		throw new NotImplementedException("lastIndexOf is not implemented in TickDynamic's List implementation!");
+		if(!(o instanceof EntityObject))
+			return -1;
+		
+		EntityObject obj = (EntityObject)o;
+		if(obj.TD_entityGroup == null || obj.TD_entityGroup.list != this)
+			return -1;
+		
+		//Same strategy as get(index), jump groups, adding their size until we reach the group containing the Object
+		int offset = 0;
+		int lastIndex = -1;
+		for(EntityGroup group : localGroups) {
+			if(obj.TD_entityGroup == group)
+			{
+				int index = group.entities.indexOf(obj);
+				if(index == -1)
+					return -1;
+				lastIndex = offset + index;
+			}
+			offset += group.getEntityCount();
+		}
+		
+		return lastIndex;
 	}
 	
 	@Override
