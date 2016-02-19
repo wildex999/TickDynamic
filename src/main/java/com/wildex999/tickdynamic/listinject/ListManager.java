@@ -282,8 +282,10 @@ public class ListManager implements List<EntityObject> {
 		}
 		EntityObject entityObject = (EntityObject)object;
 		if(entityObject.TD_entityGroup == null || entityObject.TD_entityGroup.list != this) {
-			if(mod.debug)
-				System.err.println("Trying to remove: " + object + " but does not belong to list: " + this + " but instead " + (entityObject.TD_entityGroup == null ? "None" : entityObject.TD_entityGroup.list));
+			if(mod.debug) {
+				System.err.println("Contains check: " + object + " does not belong to list: " + this + " but instead " + (entityObject.TD_entityGroup == null ? "None" : entityObject.TD_entityGroup.list));
+				Thread.currentThread().dumpStack();
+			}
 			return false;
 		}
 			
@@ -355,8 +357,11 @@ public class ListManager implements List<EntityObject> {
 
 	@Override
 	public boolean remove(Object object) {
-		if(!contains(object))
+		if(!contains(object)) {
+			if(mod.debug)
+				System.out.println("Failed to remove: " + object + " as it does not exist in list: " + this);
 			return false;
+		}
 		
 		EntityObject entityObject = (EntityObject)object;
 		if(entityObject.TD_entityGroup.removeEntity(entityObject))
