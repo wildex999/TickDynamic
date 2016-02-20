@@ -1,6 +1,7 @@
 package com.wildex999.tickdynamic.listinject;
 
 import java.util.Iterator;
+import java.util.List;
 
 import com.wildex999.tickdynamic.TickDynamicMod;
 
@@ -34,6 +35,12 @@ public class ListManagerTileEntities extends ListManager {
 			return super.size();
 
 		if(!updateStarted) {
+			//Ensure Entity ticking stops
+			List entityList = this.world.loadedEntityList;
+			if(entityList != null && entityList instanceof ListManagerEntities) {
+				((ListManagerEntities)this.world.loadedEntityList).stopUpdate();
+			}
+			
 			updateStarted = true;
 			entityIterator = new EntityIteratorTimed(this, this.getAge());
 		}

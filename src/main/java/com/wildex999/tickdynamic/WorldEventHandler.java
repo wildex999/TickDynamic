@@ -39,7 +39,7 @@ public class WorldEventHandler {
 		tileListManager = new HashMap<World, ListManager>();
 	}
 	
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void worldTickEvent(WorldTickEvent event) {
 		Profiler profiler = event.world.theProfiler;
 		if(!(profiler instanceof CustomProfiler))
@@ -50,6 +50,16 @@ public class WorldEventHandler {
     		customProfiler.setStage(CustomProfiler.Stage.BeforeLoop);
     	}
     	else {
+			//Ensure Entity ticking stops
+			List entityList = event.world.loadedEntityList;
+			if(entityList != null && entityList instanceof ListManagerEntities) {
+				((ListManagerEntities)event.world.loadedEntityList).stopUpdate();
+			}
+			//Ensure TileEntity ticking stops
+			List tileList = event.world.loadedEntityList;
+			if(tileList != null && tileList instanceof ListManagerTileEntities) {
+				((ListManagerTileEntities)event.world.loadedTileEntityList).stopUpdate();
+			}
     		customProfiler.setStage(CustomProfiler.Stage.None);
     	}
     }
