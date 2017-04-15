@@ -1,4 +1,5 @@
 # TickDynamic
+### NO LONGER MAINTAINED. Source is available to any who would like to fork, modify or use it.
 Public Issues repository for the Minecraft mod Tick Dynamic.
 
 Development Releases:
